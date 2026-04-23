@@ -4,7 +4,19 @@ class ChatApp {
         this.currentChatId = localStorage.getItem('currentChatId') || null;
         this.apiKey = localStorage.getItem('groqApiKey') || '';
         this.currentModel = localStorage.getItem('model') || 'llama-3.3-70b-versatile';
+        this.currentTheme = localStorage.getItem('theme') || 'dark';
+        this.systemPrompt = localStorage.getItem('systemPrompt') || '';
+        this.currentTagFilter = 'all';
         this.isTyping = false;
+        
+        this.systemPrompts = {
+            code: 'You are an expert senior software developer with 15+ years of experience. Provide clean, efficient code with best practices, explain your reasoning, and suggest improvements. Use TypeScript/JavaScript conventions where applicable.',
+            teacher: 'You are a patient and knowledgeable teacher who explains complex topics in simple, easy-to-understand terms. Use analogies, examples, and step-by-step explanations. Encourage questions and learning.',
+            creative: 'You are a creative writer and content creator. Help with storytelling, marketing copy, blog posts, and engaging content. Be imaginative while maintaining clarity and purpose.',
+            reviewer: 'You are a thorough code reviewer. Analyze code for bugs, security issues, performance problems, and style violations. Provide constructive feedback with specific line-by-line suggestions.',
+            translator: 'You are a professional translator fluent in multiple languages. Translate accurately while preserving tone, context, and cultural nuances. Explain idioms and provide alternatives when needed.',
+            custom: ''
+        };
         
         this.init();
     }
@@ -20,12 +32,20 @@ class ChatApp {
         // Load API key to settings
         document.getElementById('apiKey').value = this.apiKey;
         
+        // Load system prompt
+        document.getElementById('systemPrompt').value = this.systemPrompt;
+        this.handleSystemPromptChange(this.systemPrompt);
+        
+        // Apply theme
+        this.applyTheme(this.currentTheme);
+        
         // Render chat list
         this.renderChatList();
         
         // Load current chat
         if (this.currentChatId) {
             this.loadChat(this.currentChatId);
+            this.loadChatTags();
         }
         
         // Close modal on outside click
@@ -33,6 +53,124 @@ class ChatApp {
             if (e.target.id === 'settingsModal') {
                 this.toggleSettings();
             }
+        });
+        
+        // Custom system prompt listener
+        document.getElementById('systemPrompt').addEventListener('change', (e) => {
+            this.handleSystemPromptChange(e.target.value);
+        });
+        
+        // Tag input listener
+        document.getElementById('chatTags')?.addEventListener('change', (e) => {
+            this.saveChatTags(e.target.value);
+        });
+    }
+    
+    // Theme Management
+    toggleTheme() {
+        this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('theme', this.currentTheme);
+        this.applyTheme(this.currentTheme);
+    }
+    
+    applyTheme(theme) {
+        document.body.setAttribute('data-theme', theme);
+        const themeText = document.getElementById('themeText');
+        if (themeText) themeText.textContent = theme === 'dark' ? 'Light' : 'Dark';
+    }
+    
+    // System Prompt Management
+    setSystemPrompt(value) {
+        this.systemPrompt = value;
+        localStorage.setItem('systemPrompt', value);
+        this.handleSystemPromptChange(value);
+    }
+    
+    handleSystemPromptChange(value) {
+        const customTextarea = document.getElementById('customSystemPrompt');
+        if (customTextarea) {
+            if (value === 'custom') {
+                customTextarea.style.display = 'block';
+                customTextarea.value = localStorage.getItem('customSystemPrompt') || '';
+            } else {
+                customTextarea.style.display = 'none';
+            }
+        }
+    }
+    
+    getActiveSystemPrompt() {
+        if (this.systemPrompt === 'custom') {
+            return localStorage.getItem('customSystemPrompt') || '';
+        }
+        return this.systemPrompts[this.systemPrompt] || '';
+    }
+    
+    // Search Functionality
+    searchChats(query) {
+        if (!query.trim()) {
+            this.currentTagFilter = 'all';
+            this.renderChatList();
+            return;
+        }
+        
+        const filtered = this.chats.filter(chat => 
+            chat.title.toLowerCase().includes(query.toLowerCase()) ||
+            chat.messages.some(msg => msg.content.toLowerCase().includes(query.toLowerCase()))
+        );
+        
+        this.renderFilteredChatList(filtered);
+    }
+    
+    // Tag/Folder Management
+    filterByTag(tag) {
+        this.currentTagFilter = tag;
+        
+        // Update active button
+        document.querySelectorAll('.tag-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent.includes(tag === 'all' ? 'Tất cả' : tag));
+        });
+        
+        if (tag === 'all') {
+            this.renderChatList();
+        } else {
+            const filtered = this.chats.filter(chat => 
+                chat.tags && chat.tags.includes(tag)
+            );
+            this.renderFilteredChatList(filtered);
+        }
+    }
+    
+    saveChatTags(tagString) {
+        if (!this.currentChatId) return;
+        
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (chat) {
+            chat.tags = tagString.split(',').map(t => t.trim()).filter(t => t);
+            this.saveChats();
+        }
+    }
+    
+    loadChatTags() {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        const input = document.getElementById('chatTags');
+        if (chat && input && chat.tags) {
+            input.value = chat.tags.join(', ');
+        } else if (input) {
+            input.value = '';
+        }
+    }
+    
+    renderFilteredChatList(chats) {
+        const container = document.getElementById('chatList');
+        container.innerHTML = '';
+        
+        if (chats.length === 0) {
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary);">Không tìm thấy kết quả</div>';
+            return;
+        }
+        
+        chats.forEach(chat => {
+            this.renderChatItem(chat, container);
         });
     }
 
@@ -50,6 +188,11 @@ class ChatApp {
         localStorage.removeItem('currentChatId');
         this.renderMessages([]);
         document.getElementById('welcomeScreen').style.display = 'flex';
+        
+        // Clear tag input
+        const tagInput = document.getElementById('chatTags');
+        if (tagInput) tagInput.value = '';
+        
         this.renderChatList();
         
         // Close sidebar on mobile
@@ -58,11 +201,13 @@ class ChatApp {
         }
     }
 
-    createChat(title = 'Cuộc trò chuyện mới') {
+    createChat(title = 'Cuộc trò chuyện mới', systemPrompt = '') {
         const chat = {
             id: this.generateId(),
             title: title,
-            messages: [],
+            messages: systemPrompt ? [{ role: 'system', content: systemPrompt }] : [],
+            tags: [],
+            systemPrompt: systemPrompt,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -83,6 +228,7 @@ class ChatApp {
         if (chat) {
             document.getElementById('welcomeScreen').style.display = 'none';
             this.renderMessages(chat.messages);
+            this.loadChatTags();
         }
         
         this.renderChatList();
@@ -141,25 +287,34 @@ class ChatApp {
         container.innerHTML = '';
         
         this.chats.forEach(chat => {
-            const item = document.createElement('div');
-            item.className = `chat-item ${chat.id === this.currentChatId ? 'active' : ''}`;
-            item.onclick = () => this.loadChat(chat.id);
-            
-            item.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <span class="chat-title">${this.escapeHtml(chat.title)}</span>
-                <button class="delete-chat" onclick="chatApp.deleteChat('${chat.id}', event)" title="Xóa">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-            `;
-            
-            container.appendChild(item);
+            this.renderChatItem(chat, container);
         });
+    }
+    
+    renderChatItem(chat, container) {
+        const item = document.createElement('div');
+        item.className = `chat-item ${chat.id === this.currentChatId ? 'active' : ''}`;
+        item.onclick = () => this.loadChat(chat.id);
+        
+        // Show tags if any
+        const tagIndicator = chat.tags && chat.tags.length > 0 
+            ? `<span style="font-size:10px;margin-left:4px;">${chat.tags[0]}</span>` 
+            : '';
+        
+        item.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="chat-title">${this.escapeHtml(chat.title)}${tagIndicator}</span>
+            <button class="delete-chat" onclick="chatApp.deleteChat('${chat.id}', event)" title="Xóa">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        `;
+        
+        container.appendChild(item);
     }
 
     renderMessages(messages) {
@@ -235,7 +390,8 @@ class ChatApp {
         
         // Create new chat if needed
         if (!this.currentChatId) {
-            this.createChat(content.substring(0, 30));
+            const systemPrompt = this.getActiveSystemPrompt();
+            this.createChat(content.substring(0, 30), systemPrompt);
         }
         
         const chat = this.chats.find(c => c.id === this.currentChatId);
@@ -391,6 +547,24 @@ class ChatApp {
         const apiKey = document.getElementById('apiKey').value.trim();
         this.apiKey = apiKey;
         localStorage.setItem('groqApiKey', apiKey);
+        
+        // Save system prompt
+        const systemPrompt = document.getElementById('systemPrompt').value;
+        this.systemPrompt = systemPrompt;
+        localStorage.setItem('systemPrompt', systemPrompt);
+        
+        // Save custom system prompt if applicable
+        if (systemPrompt === 'custom') {
+            const customPrompt = document.getElementById('customSystemPrompt').value;
+            localStorage.setItem('customSystemPrompt', customPrompt);
+        }
+        
+        // Save chat tags
+        const tags = document.getElementById('chatTags')?.value;
+        if (tags !== undefined) {
+            this.saveChatTags(tags);
+        }
+        
         this.toggleSettings();
     }
 

@@ -14,6 +14,9 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Tìm kiếm chat..." onkeyup="chatApp.searchChats(this.value)">
+                </div>
                 <button class="new-chat-btn" onclick="chatApp.newChat()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -28,6 +31,20 @@
             </div>
             
             <div class="sidebar-footer">
+                <button class="theme-toggle" onclick="chatApp.toggleTheme()" title="Chuyển theme">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <span id="themeText">Light</span>
+                </button>
                 <button class="settings-btn" onclick="chatApp.toggleSettings()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -153,21 +170,28 @@
                         <p class="setting-hint">Lấy API key miễn phí tại <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
                     </div>
                     <div class="setting-group">
-                        <label>Mẫu Prompt</label>
-                        <div class="prompt-templates">
-                            <button class="template-tag" onclick="chatApp.insertPrompt('Bạn là một chuyên gia lập trình. Hãy giúp tôi code: ')">
-                                👨‍💻 Code Assistant
-                            </button>
-                            <button class="template-tag" onclick="chatApp.insertPrompt('Bạn là một giáo viên. Hãy giải thích đơn giản: ')">
-                                👨‍🏫 Giáo viên
-                            </button>
-                            <button class="template-tag" onclick="chatApp.insertPrompt('Bạn là một copywriter. Hãy viết nội dung về: ')">
-                                ✍️ Copywriter
-                            </button>
-                            <button class="template-tag" onclick="chatApp.insertPrompt('Hãy review code sau và chỉ ra các vấn đề: ')">
-                                🔍 Code Review
-                            </button>
+                        <label>System Prompt (Persona)</label>
+                        <select id="systemPrompt" onchange="chatApp.setSystemPrompt(this.value)">
+                            <option value="">Mặc định (Không có)</option>
+                            <option value="code">👨‍💻 Senior Developer</option>
+                            <option value="teacher">👨‍🏫 Giáo viên dễ hiểu</option>
+                            <option value="creative">✍️ Creative Writer</option>
+                            <option value="reviewer">� Code Reviewer</option>
+                            <option value="translator">🌐 Translator Pro</option>
+                            <option value="custom">✏️ Custom...</option>
+                        </select>
+                        <textarea id="customSystemPrompt" placeholder="Nhập system prompt tùy chỉnh..." style="display:none; margin-top:8px; width:100%; min-height:80px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); padding:10px; border-radius:6px; font-family:inherit;"></textarea>
+                    </div>
+                    <div class="setting-group">
+                        <label>Tags/Folders</label>
+                        <div class="tag-list" id="tagList">
+                            <button class="tag-btn active" onclick="chatApp.filterByTag('all')">Tất cả</button>
+                            <button class="tag-btn" onclick="chatApp.filterByTag('code')">💻 Code</button>
+                            <button class="tag-btn" onclick="chatApp.filterByTag('study')">📚 Học tập</button>
+                            <button class="tag-btn" onclick="chatApp.filterByTag('work')">💼 Công việc</button>
+                            <button class="tag-btn" onclick="chatApp.filterByTag('creative')">🎨 Sáng tạo</button>
                         </div>
+                        <input type="text" id="chatTags" placeholder="Thêm tag cho chat này (phân cách bằng dấu phẩy)" style="width:100%; margin-top:8px; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px;">
                     </div>
                     <div class="setting-group">
                         <button class="danger-btn" onclick="chatApp.clearAllChats()">
