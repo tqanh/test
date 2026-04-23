@@ -50,10 +50,26 @@
                 </button>
                 <div class="model-selector">
                     <select id="modelSelect" onchange="chatApp.changeModel(this.value)">
-                        <option value="llama-3.1-70b-versatile">Llama 3.1 70B</option>
-                        <option value="llama-3.1-8b-instant">Llama 3.1 8B (Nhanh)</option>
-                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-                        <option value="gemma-7b-it">Gemma 7B</option>
+                        <optgroup label="⭐ Meta (Recommended)">
+                            <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
+                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fast)</option>
+                        </optgroup>
+                        <optgroup label="Groq">
+                            <option value="groq/compound">Groq Compound</option>
+                            <option value="groq/compound-mini">Groq Compound Mini</option>
+                        </optgroup>
+                        <optgroup label="OpenAI">
+                            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+                            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
+                            <option value="openai/gpt-oss-safeguard-20b">GPT-OSS Safeguard 20B</option>
+                        </optgroup>
+                        <optgroup label="Others">
+                            <option value="qwen/qwen3-32b">Qwen3 32B (Alibaba)</option>
+                            <option value="canopylabs/orpheus-v1-english">Orpheus English (Canopy)</option>
+                            <option value="canopylabs/orpheus-arabic-saudi">Orpheus Arabic (Canopy)</option>
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                        </optgroup>
                     </select>
                 </div>
                 <button class="header-btn" onclick="chatApp.exportChat()" title="Xuất chat">

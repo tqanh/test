@@ -3,7 +3,7 @@ class ChatApp {
         this.chats = JSON.parse(localStorage.getItem('chats')) || [];
         this.currentChatId = localStorage.getItem('currentChatId') || null;
         this.apiKey = localStorage.getItem('groqApiKey') || '';
-        this.currentModel = localStorage.getItem('model') || 'llama-3.1-70b-versatile';
+        this.currentModel = localStorage.getItem('model') || 'llama-3.3-70b-versatile';
         this.isTyping = false;
         
         this.init();
