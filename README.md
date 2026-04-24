@@ -1,12 +1,12 @@
 # AI Chat Client
 
-Ứng dụng chat AI chạy hoàn toàn trên GitHub Pages với giao diện giống ChatGPT, hỗ trợ nhiều model miễn phí qua Groq API.
+Ứng dụng chat AI chạy hoàn toàn trên GitHub Pages với giao diện giống ChatGPT, sử dụng Google Gemini API miễn phí.
 
 ![Preview](https://i.imgur.com/placeholder.png)
 
 ## Tính năng
 
-- **Chat với nhiều model**: Llama 3.1, Mixtral, Gemma
+- **Chat với nhiều model**: Gemini 3.1 Flash-Lite ⭐, 3 Flash (Free tier)
 - **Dark mode đẹp**: Giao diện hiện đại, responsive
 - **Markdown rendering**: Hiển thị code blocks, bảng, list đẹp
 - **Lưu lịch sử**: Lưu vào localStorage, không mất dữ liệu
@@ -16,12 +16,12 @@
 
 ## Cài đặt & Deploy
 
-### 1. Lấy API Key
+### 1. Lấy API Key (Gemini - Miễn phí)
 
-1. Vào [console.groq.com](https://console.groq.com)
-2. Đăng ký tài khoản (miễn phí)
-3. Tạo API Key
-4. Sao chép key bắt đầu bằng `gsk_`
+1. Vào [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+2. Đăng nhập bằng Google account
+3. Click "Create API Key"
+4. Sao chép key bắt đầu bằng `AIzaSy...`
 
 ### 2. Deploy lên GitHub Pages
 
@@ -41,7 +41,7 @@ git push origin main
 
 1. Mở ứng dụng đã deploy
 2. Click **Cài đặt** (bên trái dưới cùng)
-3. Dán API Key vào ô "Groq API Key"
+3. Dán API Key vào ô "Google AI (Gemini) API Key"
 4. Click **Lưu**
 
 API Key được lưu local trong browser, không gửi đến server nào.
@@ -49,22 +49,36 @@ API Key được lưu local trong browser, không gửi đến server nào.
 ## Sử dụng
 
 - **Tin nhắn mới**: Click "Cuộc trò chuyện mới" hoặc icon hamburger
-- **Đổi model**: Dropdown ở header (Llama 3.1 70B/8B, Mixtral, Gemma)
+- **Đổi model**: Dropdown ở header (3.1 Flash-Lite ⭐, 3 Flash)
 - **Prompt nhanh**: Click các thẻ ở màn hình chào mừng
 - **Template**: Settings > chọn "👨‍💻 Code Assistant" hoặc các mẫu khác
 - **Copy/regenerate**: Hover vào tin nhắn AI để thấy nút action
 - **Export**: Icon download ở header để lưu chat ra .md
 
-## Giới hạn miễn phí (Groq)
+## Giới hạn miễn phí (Gemini) - Cập nhật Tháng 4/2026
 
-| Model | Requests/phút | Tokens/phút |
-|-------|---------------|-------------|
-| Llama 3.1 8B | 30 | 20,000 |
-| Llama 3.1 70B | 30 | 20,000 |
-| Mixtral 8x7B | 30 | 20,000 |
-| Gemma 7B | 30 | 20,000 |
+⚠️ **Google đã cắt bỏ toàn bộ Pro models khỏi free tier từ 1/4/2026**
 
-→ Đủ dùng cho cá nhân, không cần credit card.
+### Còn lại trên Free Tier:
+| Model | RPM | RPD | Notes |
+|-------|-----|-----|-------|
+| **Gemini 3.1 Flash-Lite** ⭐ | ~15 | ~1,000 | Mới nhất, rẻ nhất |
+| **Gemini 3 Flash** | ~10 | ~500 | Cân bằng tốt |
+
+### Paid-Only (từ 1/4/2026):
+| Model | Tình trạng |
+|-------|------------|
+| Gemini 3.1 Pro | ❌ Cần thanh toán |
+| Gemini 3 Pro | ❌ Cần thanh toán |
+| Gemini 2.5 Pro | ❌ Cần thanh toán (trước đó free) |
+| Gemini 2.5 Flash | ❌ Cần thanh toán (trước đó free) |
+
+→ **Chỉ còn Flash & Flash-Lite free!** Tất cả Pro models đều yêu cầu billing.
+
+### Khuyến nghị:
+1. Dùng **3.1 Flash-Lite** cho hầu hết task (mới nhất, rẻ nhất)
+2. Dùng **3 Flash** nếu cần chất lượng cao hơn một chút
+3. Muốn dùng Pro? Phải thêm billing card vào Google Cloud
 
 ## Customization
 

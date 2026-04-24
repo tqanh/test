@@ -67,25 +67,15 @@
                 </button>
                 <div class="model-selector">
                     <select id="modelSelect" onchange="chatApp.changeModel(this.value)">
-                        <optgroup label="⭐ Meta (Recommended)">
-                            <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
-                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-                            <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fast)</option>
+                        <optgroup label="⭐ Gemini 3.x - Free Tier (Khuyên dùng)">
+                            <option value="gemini-3.1-flash-lite-001">Gemini 3.1 Flash-Lite ⭐ (New)</option>
+                            <option value="gemini-3-flash-001">Gemini 3 Flash (New)</option>
                         </optgroup>
-                        <optgroup label="Groq">
-                            <option value="groq/compound">Groq Compound</option>
-                            <option value="groq/compound-mini">Groq Compound Mini</option>
-                        </optgroup>
-                        <optgroup label="OpenAI">
-                            <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-                            <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-                            <option value="openai/gpt-oss-safeguard-20b">GPT-OSS Safeguard 20B</option>
-                        </optgroup>
-                        <optgroup label="Others">
-                            <option value="qwen/qwen3-32b">Qwen3 32B (Alibaba)</option>
-                            <option value="canopylabs/orpheus-v1-english">Orpheus English (Canopy)</option>
-                            <option value="canopylabs/orpheus-arabic-saudi">Orpheus Arabic (Canopy)</option>
-                            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                        <optgroup label="⚠️ Paid-Only từ 1/4/2026">
+                            <option value="gemini-3.1-pro" disabled>Gemini 3.1 Pro (Cần thanh toán)</option>
+                            <option value="gemini-3-pro" disabled>Gemini 3 Pro (Cần thanh toán)</option>
+                            <option value="gemini-2.5-pro" disabled>Gemini 2.5 Pro (Cần thanh toán)</option>
+                            <option value="gemini-2.5-flash" disabled>Gemini 2.5 Flash (Cần thanh toán)</option>
                         </optgroup>
                     </select>
                 </div>
@@ -165,9 +155,9 @@
                 </div>
                 <div class="modal-body">
                     <div class="setting-group">
-                        <label>Groq API Key</label>
-                        <input type="password" id="apiKey" placeholder="gsk_...">
-                        <p class="setting-hint">Lấy API key miễn phí tại <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
+                        <label>Google AI (Gemini) API Key</label>
+                        <input type="password" id="apiKey" placeholder="AIzaSy...">
+                        <p class="setting-hint">Lấy API key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></p>
                     </div>
                     <div class="setting-group">
                         <label>System Prompt (Persona)</label>

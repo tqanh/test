@@ -2,12 +2,14 @@ class ChatApp {
     constructor() {
         this.chats = JSON.parse(localStorage.getItem('chats')) || [];
         this.currentChatId = localStorage.getItem('currentChatId') || null;
-        this.apiKey = localStorage.getItem('groqApiKey') || '';
-        this.currentModel = localStorage.getItem('model') || 'llama-3.3-70b-versatile';
+        this.apiKey = localStorage.getItem('geminiApiKey') || '';
+        this.currentModel = localStorage.getItem('model') || 'gemini-3.1-flash-lite-001';
         this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.systemPrompt = localStorage.getItem('systemPrompt') || '';
         this.currentTagFilter = 'all';
         this.isTyping = false;
+        this.lastRequestTime = 0;
+        this.minRequestDelay = 2000; // 2 seconds between requests for free tier
         
         this.systemPrompts = {
             code: 'You are an expert senior software developer with 15+ years of experience. Provide clean, efficient code with best practices, explain your reasoning, and suggest improvements. Use TypeScript/JavaScript conventions where applicable.',
@@ -383,7 +385,7 @@ class ChatApp {
         
         // Check API key
         if (!this.apiKey) {
-            alert('Vui lòng thêm Groq API Key trong Cài đặt');
+            alert('Vui lòng thêm Gemini API Key trong Cài đặt\n\nLấy key miễn phí tại: aistudio.google.com/app/apikey');
             this.toggleSettings();
             return;
         }
@@ -429,36 +431,59 @@ class ChatApp {
         this.isTyping = true;
         this.updateSendButton();
         
+        // Rate limiting for free tier
+        const now = Date.now();
+        const timeSinceLastRequest = now - this.lastRequestTime;
+        if (timeSinceLastRequest < this.minRequestDelay) {
+            const waitTime = this.minRequestDelay - timeSinceLastRequest;
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        this.lastRequestTime = Date.now();
+        
         // Show typing indicator
         this.showTypingIndicator();
         
         try {
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: this.currentModel,
-                    messages: chat.messages,
-                    temperature: 0.7,
-                    max_tokens: 4096
-                })
-            });
+            // Convert messages to Gemini format
+            const contents = chat.messages.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.content }]
+            }));
+            
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:generateContent?key=${this.apiKey}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: contents,
+                        generationConfig: {
+                            temperature: 0.7,
+                            maxOutputTokens: 8192
+                        }
+                    })
+                }
+            );
             
             // Remove typing indicator
             this.hideTypingIndicator();
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error?.message || 'API request failed');
+                throw new Error(error.error?.message || `API Error: ${response.status}`);
             }
             
             const data = await response.json();
+            
+            if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+                throw new Error('No response from Gemini API');
+            }
+            
             const assistantMsg = {
                 role: 'assistant',
-                content: data.choices[0].message.content
+                content: data.candidates[0].content.parts[0].text
             };
             
             chat.messages.push(assistantMsg);
@@ -474,7 +499,7 @@ class ChatApp {
             const container = document.getElementById('messages');
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
-            errorDiv.textContent = `Lỗi: ${error.message}`;
+            errorDiv.textContent = `Lỗi Gemini API: ${error.message}`;
             container.appendChild(errorDiv);
             
             // Remove the failed user message
@@ -544,9 +569,10 @@ class ChatApp {
     }
 
     saveSettings() {
+        // Save API key
         const apiKey = document.getElementById('apiKey').value.trim();
         this.apiKey = apiKey;
-        localStorage.setItem('groqApiKey', apiKey);
+        localStorage.setItem('geminiApiKey', apiKey);
         
         // Save system prompt
         const systemPrompt = document.getElementById('systemPrompt').value;
