@@ -1,18 +1,28 @@
-# AI Chat Client
+# AI Chat - Gemini API
 
-Ứng dụng chat AI chạy hoàn toàn trên GitHub Pages với giao diện giống ChatGPT, sử dụng Google Gemini API miễn phí.
+Ứng dụng chat AI chạy hoàn toàn trên GitHub Pages với giao diện hiện đại, sử dụng Google Gemini API miễn phí.
 
 ![Preview](https://i.imgur.com/placeholder.png)
 
 ## Tính năng
 
-- **Chat với nhiều model**: Gemini 3.1 Flash-Lite ⭐, 3 Flash (Free tier)
-- **Dark mode đẹp**: Giao diện hiện đại, responsive
-- **Markdown rendering**: Hiển thị code blocks, bảng, list đẹp
+### Core Features
+- **Chat với nhiều model**: Gemini Flash ⭐, Flash Lite, Pro, 2.0, 2.5 (Free tier)
+- **Streaming Responses**: Hiển thị kết quả AI theo thời gian thực
+- **Code Syntax Highlighting**: Highlight code blocks với highlight.js
+- **Markdown Rendering**: Hiển thị code blocks, bảng, list đẹp với XSS protection
+- **Dark/Light Mode**: Giao diện hiện đại, responsive
 - **Lưu lịch sử**: Lưu vào localStorage, không mất dữ liệu
-- **Prompt templates**: Mẫu prompt nhanh cho code, giải thích, sáng tạo
-- **Export chat**: Xuất ra file Markdown
-- **PWA ready**: Có thể cài đặt như app
+
+### Advanced Features
+- **System Prompts (Persona)**: Chọn preset (Senior Developer, Teacher, Creative Writer, etc.)
+- **Tags/Folders**: Phân loại chats theo tag (Code, Học tập, Công việc, Sáng tạo)
+- **Search Chats**: Tìm kiếm theo tiêu đề hoặc nội dung tin nhắn
+- **Export/Import**: Export chat ra Markdown, Export/Import tất cả chats (JSON backup)
+- **Voice Input**: Nhập tin nhắn bằng giọng nói (Web Speech API)
+- **Keyboard Shortcuts**: Phím tắt nhanh (Ctrl+K, Ctrl+/, Ctrl+B, Ctrl+E)
+- **PWA Ready**: Có thể cài đặt như app trên mobile/desktop
+- **SEO Optimized**: Meta tags cho social sharing
 
 ## Cài đặt & Deploy
 
@@ -48,37 +58,51 @@ API Key được lưu local trong browser, không gửi đến server nào.
 
 ## Sử dụng
 
+### Basic Usage
 - **Tin nhắn mới**: Click "Cuộc trò chuyện mới" hoặc icon hamburger
-- **Đổi model**: Dropdown ở header (3.1 Flash-Lite ⭐, 3 Flash)
+- **Đổi model**: Dropdown ở header (Flash ⭐, Flash Lite, Pro, 2.0, 2.5)
 - **Prompt nhanh**: Click các thẻ ở màn hình chào mừng
-- **Template**: Settings > chọn "👨‍💻 Code Assistant" hoặc các mẫu khác
-- **Copy/regenerate**: Hover vào tin nhắn AI để thấy nút action
-- **Export**: Icon download ở header để lưu chat ra .md
+- **Copy/Regenerate**: Hover vào tin nhắn AI để thấy nút action
+- **Export chat**: Icon download ở header để lưu chat ra .md
+
+### Advanced Usage
+- **System Prompt**: Settings > chọn Persona (Senior Developer, Teacher, etc.)
+- **Tags**: Settings > thêm tag cho chat hiện tại
+- **Filter by Tag**: Click tag button trong sidebar để lọc
+- **Search**: Nhập từ khóa trong ô tìm kiếm sidebar
+- **Export/Import All**: Settings > Export/Import tất cả chats
+- **Voice Input**: Click icon micro ở ô nhập tin nhắn (Chrome/Edge only)
+
+### Keyboard Shortcuts
+- `Ctrl+K`: New chat
+- `Ctrl+/`: Toggle settings
+- `Ctrl+B`: Toggle sidebar
+- `Ctrl+E`: Export chat
+- `Ctrl+Enter` (trong input): Send message
 
 ## Giới hạn miễn phí (Gemini) - Cập nhật Tháng 4/2026
 
 ⚠️ **Google đã cắt bỏ toàn bộ Pro models khỏi free tier từ 1/4/2026**
 
-### Còn lại trên Free Tier:
-| Model | RPM | RPD | Notes |
-|-------|-----|-----|-------|
-| **Gemini 3.1 Flash-Lite** ⭐ | ~15 | ~1,000 | Mới nhất, rẻ nhất |
-| **Gemini 3 Flash** | ~10 | ~500 | Cân bằng tốt |
+### Free Tier Models:
+| Model | Notes |
+|-------|-------|
+| **gemini-flash-latest** ⭐ | Khuyên dùng, nhanh nhất |
+| **gemini-flash-lite-latest** | Rẻ nhất, phù hợp task đơn giản |
+| **gemini-pro-latest** | Free tier, chất lượng cao hơn |
 
-### Paid-Only (từ 1/4/2026):
-| Model | Tình trạng |
-|-------|------------|
-| Gemini 3.1 Pro | ❌ Cần thanh toán |
-| Gemini 3 Pro | ❌ Cần thanh toán |
-| Gemini 2.5 Pro | ❌ Cần thanh toán (trước đó free) |
-| Gemini 2.5 Flash | ❌ Cần thanh toán (trước đó free) |
-
-→ **Chỉ còn Flash & Flash-Lite free!** Tất cả Pro models đều yêu cầu billing.
+### Experimental/Paid Models:
+| Model | Notes |
+|-------|-------|
+| **gemini-2.0-flash** | Experimental |
+| **gemini-2.0-flash-lite** | Experimental |
+| **gemini-2.5-flash** | Có thể cần billing |
+| **gemini-2.5-pro** | ❌ Cần billing card |
 
 ### Khuyến nghị:
-1. Dùng **3.1 Flash-Lite** cho hầu hết task (mới nhất, rẻ nhất)
-2. Dùng **3 Flash** nếu cần chất lượng cao hơn một chút
-3. Muốn dùng Pro? Phải thêm billing card vào Google Cloud
+1. Dùng **gemini-flash-latest** cho hầu hết task (nhanh, free)
+2. Dùng **gemini-pro-latest** nếu cần chất lượng cao hơn
+3. Tránh 2.5 Pro trừ khi có billing
 
 ## Customization
 

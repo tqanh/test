@@ -10,6 +10,8 @@ class ChatApp {
         this.isTyping = false;
         this.lastRequestTime = 0;
         this.minRequestDelay = 2000; // 2 seconds between requests for free tier
+        this.isListening = false;
+        this.recognition = null;
         
         this.systemPrompts = {
             code: 'You are an expert senior software developer with 15+ years of experience. Provide clean, efficient code with best practices, explain your reasoning, and suggest improvements. Use TypeScript/JavaScript conventions where applicable.',
@@ -66,6 +68,9 @@ class ChatApp {
         document.getElementById('chatTags')?.addEventListener('change', (e) => {
             this.saveChatTags(e.target.value);
         });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
     }
     
     // Theme Management
@@ -349,7 +354,7 @@ class ChatApp {
         div.id = `msg-${index}`;
         
         const content = msg.role === 'assistant' 
-            ? marked.parse(msg.content)
+            ? DOMPurify.sanitize(marked.parse(msg.content))
             : this.escapeHtml(msg.content).replace(/\n/g, '<br>');
         
         div.innerHTML = `
@@ -450,8 +455,9 @@ class ChatApp {
                 parts: [{ text: msg.content }]
             }));
             
+            // Use streaming API
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:generateContent?key=${this.apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:streamGenerateContent?key=${this.apiKey}`,
                 {
                     method: 'POST',
                     headers: {
@@ -475,22 +481,127 @@ class ChatApp {
                 throw new Error(error.error?.message || `API Error: ${response.status}`);
             }
             
-            const data = await response.json();
-            
-            if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-                throw new Error('No response from Gemini API');
-            }
-            
+            // Create assistant message for streaming
             const assistantMsg = {
                 role: 'assistant',
-                content: data.candidates[0].content.parts[0].text
+                content: ''
             };
-            
             chat.messages.push(assistantMsg);
+            
+            // Add empty message to DOM for streaming
+            const msgIndex = chat.messages.length - 1;
+            this.appendMessageToDOM(assistantMsg, msgIndex);
+            const msgContentDiv = document.querySelector(`#msg-${msgIndex} .message-content`);
+            
+            // Stream response - read all and parse as JSON array
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullContent = '';
+            let buffer = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+            }
+            
+            // Parse the entire response as JSON array
+            // Gemini returns: [{...},{...},...]
+            try {
+                // Remove outer brackets and split by comma
+                const cleanBuffer = buffer.trim();
+                if (cleanBuffer.startsWith('[') && cleanBuffer.endsWith(']')) {
+                    const inner = cleanBuffer.slice(1, -1);
+                    // Split by comma outside of braces/strings
+                    const objects = [];
+                    let braceCount = 0;
+                    let inString = false;
+                    let escapeNext = false;
+                    let objStart = 0;
+                    
+                    for (let i = 0; i < inner.length; i++) {
+                        const char = inner[i];
+                        
+                        if (escapeNext) {
+                            escapeNext = false;
+                            continue;
+                        }
+                        
+                        if (char === '\\') {
+                            escapeNext = true;
+                            continue;
+                        }
+                        
+                        if (char === '"' && !escapeNext) {
+                            inString = !inString;
+                            continue;
+                        }
+                        
+                        if (!inString) {
+                            if (char === '{') {
+                                braceCount++;
+                            } else if (char === '}') {
+                                braceCount--;
+                                if (braceCount === 0) {
+                                    objects.push(inner.slice(objStart, i + 1).trim());
+                                    objStart = i + 2; // Skip comma
+                                }
+                            }
+                        }
+                    }
+                    
+                    for (const objStr of objects) {
+                        if (objStr) {
+                            try {
+                                const data = JSON.parse(objStr);
+                                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                                    const parts = data.candidates[0].content.parts;
+                                    if (parts && parts[0] && parts[0].text) {
+                                        fullContent += parts[0].text;
+                                    }
+                                }
+                            } catch (e) {
+                                // Skip invalid objects
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Parse error:', e);
+            }
+            
+            if (fullContent) {
+                assistantMsg.content = fullContent;
+                
+                // Update DOM with markdown
+                msgContentDiv.innerHTML = DOMPurify.sanitize(marked.parse(fullContent)) + `
+                    <div class="message-actions">
+                        <button class="message-action-btn" onclick="chatApp.copyMessage(${msgIndex})" title="Sao chép">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                        <button class="message-action-btn" onclick="chatApp.regenerateMessage(${msgIndex})" title="Tạo lại">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                
+                // Highlight code blocks
+                msgContentDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightBlock(block);
+                });
+                
+                this.scrollToBottom();
+            }
+            
             chat.updatedAt = new Date().toISOString();
             this.saveChats();
-            
-            this.renderMessages(chat.messages);
             
         } catch (error) {
             this.hideTypingIndicator();
@@ -551,6 +662,42 @@ class ChatApp {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             this.sendMessage();
+        }
+    }
+
+    handleKeyboardShortcuts(e) {
+        // Don't trigger if typing in input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            // Ctrl+Enter to send message
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                this.sendMessage();
+            }
+            return;
+        }
+
+        // Ctrl+K: New chat
+        if (e.ctrlKey && e.key === 'k') {
+            e.preventDefault();
+            this.newChat();
+        }
+
+        // Ctrl+/: Toggle settings
+        if (e.ctrlKey && e.key === '/') {
+            e.preventDefault();
+            this.toggleSettings();
+        }
+
+        // Ctrl+B: Toggle sidebar
+        if (e.ctrlKey && e.key === 'b') {
+            e.preventDefault();
+            this.toggleSidebar();
+        }
+
+        // Ctrl+E: Export chat
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            this.exportChat();
         }
     }
 
@@ -653,10 +800,123 @@ class ChatApp {
         URL.revokeObjectURL(url);
     }
 
+    exportAllChats() {
+        if (this.chats.length === 0) {
+            alert('Không có cuộc trò chuyện để xuất');
+            return;
+        }
+
+        const data = {
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            chats: this.chats
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ai-chat-backup-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    importChats(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                if (!data.chats || !Array.isArray(data.chats)) {
+                    throw new Error('Invalid backup file');
+                }
+
+                if (!confirm(`Import ${data.chats.length} chats? This will merge with existing chats.`)) {
+                    return;
+                }
+
+                // Merge chats, avoiding duplicates by ID
+                const existingIds = new Set(this.chats.map(c => c.id));
+                const newChats = data.chats.filter(c => !existingIds.has(c.id));
+                
+                this.chats = [...newChats, ...this.chats];
+                this.saveChats();
+                this.renderChatList();
+                
+                alert(`Đã import ${newChats.length} chats thành công!`);
+                this.toggleSettings();
+            } catch (error) {
+                alert('Lỗi import: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+        
+        // Reset input
+        input.value = '';
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    toggleVoiceInput() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Trình duyệt của bạn không hỗ trợ Voice Input. Hãy dùng Chrome hoặc Edge.');
+            return;
+        }
+
+        if (this.isListening) {
+            this.stopVoiceInput();
+        } else {
+            this.startVoiceInput();
+        }
+    }
+
+    startVoiceInput() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.recognition = new SpeechRecognition();
+        this.recognition.lang = 'vi-VN';
+        this.recognition.continuous = false;
+        this.recognition.interimResults = false;
+
+        this.recognition.onstart = () => {
+            this.isListening = true;
+            document.getElementById('voiceBtn').classList.add('listening');
+        };
+
+        this.recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const input = document.getElementById('messageInput');
+            input.value += (input.value ? ' ' : '') + transcript;
+            this.autoResize(input);
+        };
+
+        this.recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            this.stopVoiceInput();
+        };
+
+        this.recognition.onend = () => {
+            this.stopVoiceInput();
+        };
+
+        this.recognition.start();
+    }
+
+    stopVoiceInput() {
+        if (this.recognition) {
+            this.recognition.stop();
+            this.recognition = null;
+        }
+        this.isListening = false;
+        document.getElementById('voiceBtn').classList.remove('listening');
     }
 }
 

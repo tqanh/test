@@ -3,9 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat</title>
+    <title>AI Chat - Trò chuyện với AI bằng Gemini API</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AI Chat - Ứng dụng chat AI miễn phí sử dụng Google Gemini API. Hỗ trợ nhiều model, streaming responses, code highlighting, và nhiều tính năng hữu ích.">
+    <meta name="keywords" content="AI chat, Gemini API, Google AI, chatbot, assistant, code helper, Vietnamese">
+    <meta name="author" content="AI Chat">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="AI Chat - Trò chuyện với AI bằng Gemini API">
+    <meta property="og:description" content="Ứng dụng chat AI miễn phí sử dụng Google Gemini API. Hỗ trợ nhiều model, streaming responses, code highlighting.">
+    <meta property="og:image" content="https://via.placeholder.com/1200x630/10a37f/ffffff?text=AI+Chat">
+    <meta property="og:url" content="https://yourusername.github.io/your-repo/">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AI Chat - Trò chuyện với AI bằng Gemini API">
+    <meta name="twitter:description" content="Ứng dụng chat AI miễn phí sử dụng Google Gemini API.">
+    <meta name="twitter:image" content="https://via.placeholder.com/1200x630/10a37f/ffffff?text=AI+Chat">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310a37f'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10a37f">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -132,6 +159,14 @@
 
             <div class="input-area">
                 <div class="input-container">
+                    <button class="voice-btn" onclick="chatApp.toggleVoiceInput()" id="voiceBtn" title="Nhập bằng giọng nói">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </button>
                     <textarea 
                         id="messageInput" 
                         placeholder="Nhập tin nhắn..."
@@ -185,6 +220,15 @@
                             <button class="tag-btn" onclick="chatApp.filterByTag('creative')">🎨 Sáng tạo</button>
                         </div>
                         <input type="text" id="chatTags" placeholder="Thêm tag cho chat này (phân cách bằng dấu phẩy)" style="width:100%; margin-top:8px; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px;">
+                    </div>
+                    <div class="setting-group">
+                        <button class="btn-secondary" onclick="chatApp.exportAllChats()">
+                            📤 Export tất cả chats
+                        </button>
+                        <button class="btn-secondary" onclick="document.getElementById('importFile').click()">
+                            📥 Import chats
+                        </button>
+                        <input type="file" id="importFile" accept=".json" style="display:none" onchange="chatApp.importChats(this)">
                     </div>
                     <div class="setting-group">
                         <button class="danger-btn" onclick="chatApp.clearAllChats()">
