@@ -508,66 +508,21 @@ class ChatApp {
             // Parse the entire response as JSON array
             // Gemini returns: [{...},{...},...]
             try {
-                // Remove outer brackets and split by comma
                 const cleanBuffer = buffer.trim();
-                if (cleanBuffer.startsWith('[') && cleanBuffer.endsWith(']')) {
-                    const inner = cleanBuffer.slice(1, -1);
-                    // Split by comma outside of braces/strings
-                    const objects = [];
-                    let braceCount = 0;
-                    let inString = false;
-                    let escapeNext = false;
-                    let objStart = 0;
-                    
-                    for (let i = 0; i < inner.length; i++) {
-                        const char = inner[i];
-                        
-                        if (escapeNext) {
-                            escapeNext = false;
-                            continue;
-                        }
-                        
-                        if (char === '\\') {
-                            escapeNext = true;
-                            continue;
-                        }
-                        
-                        if (char === '"' && !escapeNext) {
-                            inString = !inString;
-                            continue;
-                        }
-                        
-                        if (!inString) {
-                            if (char === '{') {
-                                braceCount++;
-                            } else if (char === '}') {
-                                braceCount--;
-                                if (braceCount === 0) {
-                                    objects.push(inner.slice(objStart, i + 1).trim());
-                                    objStart = i + 2; // Skip comma
-                                }
-                            }
-                        }
-                    }
-                    
-                    for (const objStr of objects) {
-                        if (objStr) {
-                            try {
-                                const data = JSON.parse(objStr);
-                                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                                    const parts = data.candidates[0].content.parts;
-                                    if (parts && parts[0] && parts[0].text) {
-                                        fullContent += parts[0].text;
-                                    }
-                                }
-                            } catch (e) {
-                                // Skip invalid objects
+                const dataArray = JSON.parse(cleanBuffer);
+                
+                if (Array.isArray(dataArray)) {
+                    for (const data of dataArray) {
+                        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                            const parts = data.candidates[0].content.parts;
+                            if (parts && parts[0] && parts[0].text) {
+                                fullContent += parts[0].text;
                             }
                         }
                     }
                 }
             } catch (e) {
-                console.error('Parse error:', e);
+                console.error('Parse error:', e, 'Buffer length:', buffer.length);
             }
             
             if (fullContent) {
