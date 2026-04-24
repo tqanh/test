@@ -3,7 +3,7 @@ class ChatApp {
         this.chats = JSON.parse(localStorage.getItem('chats')) || [];
         this.currentChatId = localStorage.getItem('currentChatId') || null;
         this.apiKey = localStorage.getItem('geminiApiKey') || '';
-        this.currentModel = localStorage.getItem('model') || 'gemini-3.1-flash-lite-001';
+        this.currentModel = localStorage.getItem('model') || 'gemini-flash-latest';
         this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.systemPrompt = localStorage.getItem('systemPrompt') || '';
         this.currentTagFilter = 'all';
