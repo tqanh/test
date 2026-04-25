@@ -111,6 +111,12 @@
                             <option value="deepseek-v4-pro">DeepSeek V4 Pro (Best)</option>
                             <option value="deepseek-v4-flash">DeepSeek V4 Flash (Fast)</option>
                         </optgroup>
+                        <optgroup label="⚡ Groq - Siêu nhanh (30 RPM)">
+                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Best)</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fastest)</option>
+                            <option value="llama-3.1-70b-versatile">Llama 3.1 70B (Versatile)</option>
+                            <option value="gemma2-9b-it">Gemma 2 9B (Google)</option>
+                        </optgroup>
                     </select>
                 </div>
                 <button class="header-btn" onclick="chatApp.exportChat()" title="Xuất chat">
@@ -205,6 +211,11 @@
                         <label>DeepSeek API Key (Không giới hạn)</label>
                         <input type="password" id="deepseekApiKey" placeholder="sk-...">
                         <p class="setting-hint">Lấy API key miễn phí tại <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com/api_keys</a></p>
+                    </div>
+                    <div class="setting-group">
+                        <label>Groq API Key (Siêu nhanh - 30 RPM)</label>
+                        <input type="password" id="groqApiKey" placeholder="gsk_...">
+                        <p class="setting-hint">Lấy API key miễn phí tại <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></p>
                     </div>
                     <div class="setting-group">
                         <label style="display:flex; align-items:center; gap:8px;">

@@ -4,6 +4,7 @@ class ChatApp {
         this.currentChatId = localStorage.getItem('currentChatId') || null;
         this.apiKey = localStorage.getItem('geminiApiKey') || '';
         this.deepseekApiKey = localStorage.getItem('deepseekApiKey') || '';
+        this.groqApiKey = localStorage.getItem('groqApiKey') || '';
         this.currentModel = localStorage.getItem('model') || 'gemini-flash-latest';
         this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.systemPrompt = localStorage.getItem('systemPrompt') || '';
@@ -39,6 +40,7 @@ class ChatApp {
         // Load API key to settings
         document.getElementById('apiKey').value = this.apiKey;
         document.getElementById('deepseekApiKey').value = this.deepseekApiKey;
+        document.getElementById('groqApiKey').value = this.groqApiKey;
         
         // Load proxy settings
         document.getElementById('useProxy').checked = this.useProxy;
@@ -88,6 +90,12 @@ class ChatApp {
         document.getElementById('deepseekApiKey')?.addEventListener('change', (e) => {
             localStorage.setItem('deepseekApiKey', e.target.value);
             this.deepseekApiKey = e.target.value;
+        });
+        
+        // Groq API key listener
+        document.getElementById('groqApiKey')?.addEventListener('change', (e) => {
+            localStorage.setItem('groqApiKey', e.target.value);
+            this.groqApiKey = e.target.value;
         });
         
         // Keyboard shortcuts
@@ -479,8 +487,9 @@ class ChatApp {
         this.isTyping = true;
         this.updateSendButton();
         
-        // Check if using DeepSeek
+        // Check which API to use
         const isDeepSeek = this.currentModel.startsWith('deepseek-');
+        const isGroq = this.currentModel.startsWith('llama-') || this.currentModel.startsWith('qwen');
         
         // Check API key
         if (isDeepSeek && !this.deepseekApiKey) {
@@ -491,7 +500,15 @@ class ChatApp {
             return;
         }
         
-        if (!isDeepSeek && !this.apiKey) {
+        if (isGroq && !this.groqApiKey) {
+            alert('Vui lòng thêm Groq API Key trong Cài đặt\n\nLấy key miễn phí tại: console.groq.com/keys');
+            this.toggleSettings();
+            this.isTyping = false;
+            this.updateSendButton();
+            return;
+        }
+        
+        if (!isDeepSeek && !isGroq && !this.apiKey) {
             alert('Vui lòng thêm Gemini API Key trong Cài đặt\n\nLấy key miễn phí tại: aistudio.google.com/app/apikey');
             this.toggleSettings();
             this.isTyping = false;
@@ -500,7 +517,7 @@ class ChatApp {
         }
         
         // Rate limiting for free tier (only for Gemini)
-        if (!isDeepSeek) {
+        if (!isDeepSeek && !isGroq) {
             const now = Date.now();
             const timeSinceLastRequest = now - this.lastRequestTime;
             if (timeSinceLastRequest < this.minRequestDelay) {
@@ -516,7 +533,28 @@ class ChatApp {
         try {
             let response;
             
-            if (isDeepSeek) {
+            if (isGroq) {
+                // Groq API call (OpenAI-compatible format)
+                const messages = chat.messages.map(msg => ({
+                    role: msg.role === 'assistant' ? 'assistant' : 'user',
+                    content: msg.content
+                }));
+                
+                const apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+                
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.groqApiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: this.currentModel,
+                        messages: messages,
+                        stream: true
+                    })
+                });
+            } else if (isDeepSeek) {
                 // DeepSeek API call (OpenAI-compatible format)
                 const messages = chat.messages.map(msg => ({
                     role: msg.role === 'assistant' ? 'assistant' : 'user',
@@ -594,8 +632,8 @@ class ChatApp {
             let fullContent = '';
             let buffer = '';
             
-            if (isDeepSeek) {
-                // DeepSeek streaming format (OpenAI-compatible: data: {...})
+            if (isGroq || isDeepSeek) {
+                // Groq and DeepSeek streaming format (OpenAI-compatible: data: {...})
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -685,7 +723,11 @@ class ChatApp {
             'gemini-2.5-flash': 'GEMINI 2.5 FLASH',
             'gemini-2.5-pro': 'GEMINI 2.5 PRO',
             'deepseek-v4-pro': 'DEEPSEEK V4 PRO',
-            'deepseek-v4-flash': 'DEEPSEEK V4 FLASH'
+            'deepseek-v4-flash': 'DEEPSEEK V4 FLASH',
+            'llama-3.3-70b-versatile': 'LLAMA 3.3 70B',
+            'llama-3.1-8b-instant': 'LLAMA 3.1 8B',
+            'llama-3.1-70b-versatile': 'LLAMA 3.1 70B',
+            'gemma2-9b-it': 'GEMMA 2 9B'
         };
         return modelNames[model] || model.toUpperCase();
     }
