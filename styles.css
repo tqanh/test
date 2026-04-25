@@ -977,6 +977,79 @@ body::after {
     box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
 }
 
+/* Command Palette */
+#commandPalette {
+    z-index: 2000;
+}
+
+#commandPalette .modal-content {
+    max-width: 600px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+}
+
+.command-input {
+    width: 100%;
+    padding: 15px;
+    background: var(--bg-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 16px;
+    margin-bottom: 15px;
+}
+
+.command-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--shadow-glow);
+}
+
+.command-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.command-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    margin-bottom: 5px;
+}
+
+.command-item:hover {
+    background: var(--bg-hover);
+    transform: translateX(5px);
+}
+
+.command-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+}
+
+.command-name {
+    flex: 1;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.command-shortcut {
+    color: var(--text-secondary);
+    font-size: 12px;
+    background: var(--bg-hover);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {

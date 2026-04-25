@@ -361,10 +361,24 @@ class ChatApp {
         
         this.scrollToBottom();
         
+        // Update token counter
+        this.updateTokenCounter();
+        
         // Highlight code blocks
         document.querySelectorAll('pre code').forEach((block) => {
             hljs.highlightBlock(block);
         });
+        
+        // Render KaTeX math
+        renderMathInElement(container, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ]
+        });
+        
+        // Render Mermaid diagrams
+        mermaid.init(undefined, document.querySelectorAll('.mermaid'));
     }
 
     appendMessageToDOM(msg, index) {
@@ -655,13 +669,18 @@ class ChatApp {
                 e.preventDefault();
                 this.sendMessage();
             }
+            // Ctrl+K to open command palette
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                this.toggleCommandPalette();
+            }
             return;
         }
 
-        // Ctrl+K: New chat
+        // Ctrl+K: Command palette
         if (e.ctrlKey && e.key === 'k') {
             e.preventDefault();
-            this.newChat();
+            this.toggleCommandPalette();
         }
 
         // Ctrl+/: Toggle settings
@@ -899,6 +918,22 @@ class ChatApp {
         URL.revokeObjectURL(url);
     }
 
+    updateTokenCounter() {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (!chat) {
+            document.getElementById('tokenCount').textContent = '0';
+            return;
+        }
+        
+        let totalChars = 0;
+        chat.messages.forEach(msg => {
+            totalChars += msg.content.length;
+        });
+        
+        const estimatedTokens = Math.ceil(totalChars / 4);
+        document.getElementById('tokenCount').textContent = estimatedTokens.toLocaleString();
+    }
+
     importChats(input) {
         const file = input.files[0];
         if (!file) return;
@@ -1089,6 +1124,176 @@ class ChatApp {
         this.chats.unshift(newChat);
         this.saveChats();
         this.loadChat(newChat.id);
+    }
+
+    toggleCommandPalette() {
+        const modal = document.getElementById('commandPalette');
+        modal.classList.toggle('active');
+        if (modal.classList.contains('active')) {
+            document.getElementById('commandInput').focus();
+            document.getElementById('commandInput').value = '';
+            this.filterCommands('');
+        }
+    }
+
+    filterCommands(query) {
+        const items = document.querySelectorAll('.command-item');
+        const lowerQuery = query.toLowerCase();
+        
+        items.forEach(item => {
+            const name = item.querySelector('.command-name').textContent.toLowerCase();
+            if (name.includes(lowerQuery)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    executeCommand(command) {
+        this.toggleCommandPalette();
+        
+        switch(command) {
+            case 'newChat':
+                this.newChat();
+                break;
+            case 'settings':
+                this.toggleSettings();
+                break;
+            case 'toggleSidebar':
+                this.toggleSidebar();
+                break;
+            case 'export':
+                this.exportChat();
+                break;
+            case 'clear':
+                if (confirm('Bạn có chắc muốn xóa tất cả cuộc trò chuyện?')) {
+                    this.clearAllChats();
+                }
+                break;
+            case 'theme':
+                this.toggleTheme();
+                break;
+        }
+    }
+
+    showContextMenu(e, index) {
+        this.contextMenuIndex = index;
+        const menu = document.getElementById('contextMenu');
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+        menu.classList.add('active');
+        
+        document.addEventListener('click', this.hideContextMenu);
+    }
+
+    hideContextMenu() {
+        const menu = document.getElementById('contextMenu');
+        menu.classList.remove('active');
+        document.removeEventListener('click', this.hideContextMenu);
+    }
+
+    contextAction(action) {
+        const index = this.contextMenuIndex;
+        this.hideContextMenu();
+        
+        switch(action) {
+            case 'copy':
+                this.copyMessage(index);
+                break;
+            case 'edit':
+                this.editMessage(index);
+                break;
+            case 'branch':
+                this.branchChat(index);
+                break;
+            case 'regenerate':
+                this.regenerateMessage(index);
+                break;
+            case 'delete':
+                this.deleteMessage(index);
+                break;
+        }
+    }
+
+    editMessage(index) {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (!chat) return;
+        
+        const msg = chat.messages[index];
+        const newContent = prompt('Sửa tin nhắn:', msg.content);
+        
+        if (newContent !== null && newContent.trim() !== '') {
+            msg.content = newContent.trim();
+            
+            if (msg.role === 'user') {
+                chat.messages = chat.messages.slice(0, index + 1);
+                this.saveChats();
+                this.renderMessages(chat.messages);
+                this.sendToAPI(chat);
+            } else {
+                this.saveChats();
+                this.renderMessages(chat.messages);
+            }
+        }
+    }
+
+    deleteMessage(index) {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (!chat) return;
+        
+        if (confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
+            chat.messages.splice(index, 1);
+            this.saveChats();
+            this.renderMessages(chat.messages);
+        }
+    }
+
+    playNotificationSound() {
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.1);
+        } catch (e) {
+            console.error('Audio error:', e);
+        }
+    }
+
+    updateCustomTheme() {
+        const accentColor = document.getElementById('accentColor').value;
+        const bgColor = document.getElementById('bgColor').value;
+        
+        document.documentElement.style.setProperty('--accent', accentColor);
+        document.documentElement.style.setProperty('--bg-primary', bgColor);
+        
+        localStorage.setItem('customAccentColor', accentColor);
+        localStorage.setItem('customBgColor', bgColor);
+    }
+
+    resetTheme() {
+        document.getElementById('accentColor').value = '#00d4ff';
+        document.getElementById('bgColor').value = '#0f0f1a';
+        
+        document.documentElement.style.setProperty('--accent', '#00d4ff');
+        document.documentElement.style.setProperty('--bg-primary', '#0f0f1a');
+        
+        localStorage.removeItem('customAccentColor');
+        localStorage.removeItem('customBgColor');
     }
 }
 
