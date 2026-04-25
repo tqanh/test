@@ -1106,26 +1106,6 @@ class ChatApp {
         input.value = '';
     }
 
-    branchChat(index) {
-        const chat = this.chats.find(c => c.id === this.currentChatId);
-        if (!chat) return;
-        
-        // Create new chat with messages up to index
-        const newChat = {
-            id: this.generateId(),
-            title: `${chat.title} (Branch)`,
-            messages: chat.messages.slice(0, index + 1),
-            tags: [...chat.tags],
-            systemPrompt: chat.systemPrompt,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        this.chats.unshift(newChat);
-        this.saveChats();
-        this.loadChat(newChat.id);
-    }
-
     toggleCommandPalette() {
         const modal = document.getElementById('commandPalette');
         modal.classList.toggle('active');
