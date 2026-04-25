@@ -4,3 +4,6 @@ compatibility_date = "2024-01-01"
 
 [vars]
 # No vars needed, use secrets instead
+
+[env.production]
+name = "gemini-proxy"
