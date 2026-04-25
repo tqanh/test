@@ -12,6 +12,8 @@ class ChatApp {
         this.minRequestDelay = 2000; // 2 seconds between requests for free tier
         this.isListening = false;
         this.recognition = null;
+        this.useProxy = localStorage.getItem('useProxy') === 'true';
+        this.proxyUrl = localStorage.getItem('proxyUrl') || '';
         
         this.systemPrompts = {
             code: 'You are an expert senior software developer with 15+ years of experience. Provide clean, efficient code with best practices, explain your reasoning, and suggest improvements. Use TypeScript/JavaScript conventions where applicable.',
@@ -35,6 +37,11 @@ class ChatApp {
         
         // Load API key to settings
         document.getElementById('apiKey').value = this.apiKey;
+        
+        // Load proxy settings
+        document.getElementById('useProxy').checked = this.useProxy;
+        document.getElementById('proxyUrl').value = this.proxyUrl;
+        this.toggleProxy(this.useProxy);
         
         // Load system prompt
         document.getElementById('systemPrompt').value = this.systemPrompt;
@@ -67,6 +74,12 @@ class ChatApp {
         // Tag input listener
         document.getElementById('chatTags')?.addEventListener('change', (e) => {
             this.saveChatTags(e.target.value);
+        });
+        
+        // Proxy URL listener
+        document.getElementById('proxyUrl')?.addEventListener('change', (e) => {
+            localStorage.setItem('proxyUrl', e.target.value);
+            this.proxyUrl = e.target.value;
         });
         
         // Keyboard shortcuts
@@ -110,6 +123,23 @@ class ChatApp {
             return localStorage.getItem('customSystemPrompt') || '';
         }
         return this.systemPrompts[this.systemPrompt] || '';
+    }
+
+    toggleProxy(enabled) {
+        localStorage.setItem('useProxy', enabled);
+        this.useProxy = enabled;
+        
+        const proxyUrlInput = document.getElementById('proxyUrl');
+        const proxyHint = document.getElementById('proxyHint');
+        
+        if (enabled) {
+            proxyUrlInput.style.display = 'block';
+            proxyHint.style.display = 'block';
+            proxyUrlInput.value = this.proxyUrl;
+        } else {
+            proxyUrlInput.style.display = 'none';
+            proxyHint.style.display = 'none';
+        }
     }
     
     // Search Functionality
@@ -460,23 +490,28 @@ class ChatApp {
                 parts: [{ text: msg.content }]
             }));
             
-            // Use streaming API
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:streamGenerateContent?key=${this.apiKey}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        contents: contents,
-                        generationConfig: {
-                            temperature: 0.7,
-                            maxOutputTokens: 8192
-                        }
-                    })
-                }
-            );
+            // Use streaming API - either direct or via proxy
+            const apiUrl = this.useProxy && this.proxyUrl 
+                ? this.proxyUrl 
+                : `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:streamGenerateContent?key=${this.apiKey}`;
+            
+            const requestBody = this.useProxy && this.proxyUrl
+                ? { model: this.currentModel, contents }
+                : {
+                    contents: contents,
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 8192
+                    }
+                };
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
             
             // Remove typing indicator
             this.hideTypingIndicator();

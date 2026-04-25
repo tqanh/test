@@ -198,6 +198,14 @@
                         <p class="setting-hint">Lấy API key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></p>
                     </div>
                     <div class="setting-group">
+                        <label style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="useProxy" onchange="chatApp.toggleProxy(this.checked)">
+                            Dùng Proxy Server (để chia sẻ app)
+                        </label>
+                        <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev" style="display:none; margin-top:8px; width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px;">
+                        <p class="setting-hint" style="display:none;" id="proxyHint">Deploy Cloudflare Worker từ file worker.js trong repo</p>
+                    </div>
+                    <div class="setting-group">
                         <label>System Prompt (Persona)</label>
                         <select id="systemPrompt" onchange="chatApp.setSystemPrompt(this.value)">
                             <option value="">Mặc định (Không có)</option>
