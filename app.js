@@ -674,10 +674,10 @@ class ChatApp {
     }
 
     saveSettings() {
-        // Save API key
-        const apiKey = document.getElementById('apiKey').value.trim();
-        this.apiKey = apiKey;
-        localStorage.setItem('geminiApiKey', apiKey);
+        // Save Groq API key
+        const groqApiKey = document.getElementById('groqApiKey').value.trim();
+        this.groqApiKey = groqApiKey;
+        localStorage.setItem('groqApiKey', groqApiKey);
         
         // Save system prompt
         const systemPrompt = document.getElementById('systemPrompt').value;
