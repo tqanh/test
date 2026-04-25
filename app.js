@@ -358,7 +358,7 @@ class ChatApp {
             : this.escapeHtml(msg.content).replace(/\n/g, '<br>');
         
         const modelBadge = msg.role === 'assistant' 
-            ? `<div class="model-badge">${this.getModelDisplayName(this.currentModel)}</div>` 
+            ? `<div class="model-badge">${this.getModelDisplayName(msg.model || this.currentModel)}</div>` 
             : '';
         
         div.innerHTML = `
@@ -489,7 +489,8 @@ class ChatApp {
             // Create assistant message for streaming
             const assistantMsg = {
                 role: 'assistant',
-                content: ''
+                content: '',
+                model: this.currentModel
             };
             chat.messages.push(assistantMsg);
             
