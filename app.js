@@ -489,7 +489,10 @@ class ChatApp {
         
         // Check which API to use
         const isDeepSeek = this.currentModel.startsWith('deepseek-');
-        const isGroq = this.currentModel.startsWith('llama-') || this.currentModel.startsWith('qwen');
+        const isGroq = this.currentModel.startsWith('llama-') || 
+                      this.currentModel.startsWith('openai/') || 
+                      this.currentModel.startsWith('meta-llama/') || 
+                      this.currentModel.startsWith('qwen/');
         
         // Check API key
         if (isDeepSeek && !this.deepseekApiKey) {
@@ -726,8 +729,10 @@ class ChatApp {
             'deepseek-v4-flash': 'DEEPSEEK V4 FLASH',
             'llama-3.3-70b-versatile': 'LLAMA 3.3 70B',
             'llama-3.1-8b-instant': 'LLAMA 3.1 8B',
-            'llama-3.1-70b-versatile': 'LLAMA 3.1 70B',
-            'gemma2-9b-it': 'GEMMA 2 9B'
+            'openai/gpt-oss-120b': 'GPT OSS 120B',
+            'openai/gpt-oss-20b': 'GPT OSS 20B',
+            'meta-llama/llama-4-scout-17b-16e-instruct': 'LLAMA 4 SCOUT',
+            'qwen/qwen3-32b': 'QWEN3 32B'
         };
         return modelNames[model] || model.toUpperCase();
     }
