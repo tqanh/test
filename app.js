@@ -534,8 +534,9 @@ class ChatApp {
             if (fullContent) {
                 assistantMsg.content = fullContent;
                 
-                // Update DOM with markdown
-                msgContentDiv.innerHTML = DOMPurify.sanitize(marked.parse(fullContent)) + `
+                // Update DOM with markdown - include model badge
+                const modelBadge = `<div class="model-badge">${this.getModelDisplayName(assistantMsg.model)}</div>`;
+                msgContentDiv.innerHTML = modelBadge + DOMPurify.sanitize(marked.parse(fullContent)) + `
                     <div class="message-actions">
                         <button class="message-action-btn" onclick="chatApp.copyMessage(${msgIndex})" title="Sao chép">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
