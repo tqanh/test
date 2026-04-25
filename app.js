@@ -12,6 +12,8 @@ class ChatApp {
         this.minRequestDelay = 2000; // 2 seconds between requests for free tier
         this.isListening = false;
         this.recognition = null;
+        this.contextMenuIndex = null;
+        this.audioContext = null;
         
         this.systemPrompts = {
             code: 'You are an expert senior software developer with 15+ years of experience. Provide clean, efficient code with best practices, explain your reasoning, and suggest improvements. Use TypeScript/JavaScript conventions where applicable.',
@@ -42,6 +44,18 @@ class ChatApp {
         
         // Apply theme
         this.applyTheme(this.currentTheme);
+        
+        // Load custom theme colors
+        const customAccent = localStorage.getItem('customAccentColor');
+        const customBg = localStorage.getItem('customBgColor');
+        if (customAccent) {
+            document.documentElement.style.setProperty('--accent', customAccent);
+            document.getElementById('accentColor').value = customAccent;
+        }
+        if (customBg) {
+            document.documentElement.style.setProperty('--bg-primary', customBg);
+            document.getElementById('bgColor').value = customBg;
+        }
         
         // Render chat list
         this.renderChatList();
@@ -358,6 +372,13 @@ class ChatApp {
         const div = document.createElement('div');
         div.className = `message ${msg.role}`;
         div.id = `msg-${index}`;
+        div.dataset.index = index;
+        
+        // Add right-click context menu
+        div.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.showContextMenu(e, index);
+        });
         
         const content = msg.role === 'assistant' 
             ? DOMPurify.sanitize(marked.parse(msg.content))
@@ -540,6 +561,9 @@ class ChatApp {
             const modelBadge = `<div class="model-badge">${this.getModelDisplayName(assistantMsg.model)}</div>`;
             msgContentDiv.innerHTML = modelBadge + DOMPurify.sanitize(marked.parse(fullContent));
             this.scrollToBottom();
+            
+            // Play notification sound
+            this.playNotificationSound();
             
             // Save chat
             this.saveChats();
@@ -732,6 +756,100 @@ class ChatApp {
         await this.sendToAPI(chat);
     }
 
+    editMessage(index) {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (!chat) return;
+        
+        const msg = chat.messages[index];
+        const newContent = prompt('Sửa tin nhắn:', msg.content);
+        
+        if (newContent !== null && newContent.trim() !== '') {
+            msg.content = newContent.trim();
+            
+            // If editing user message, regenerate all assistant messages after it
+            if (msg.role === 'user') {
+                chat.messages = chat.messages.slice(0, index + 1);
+                this.saveChats();
+                this.renderMessages(chat.messages);
+                this.sendToAPI(chat);
+            } else {
+                // Just update the message
+                this.saveChats();
+                this.renderMessages(chat.messages);
+            }
+        }
+    }
+
+    deleteMessage(index) {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (!chat) return;
+        
+        if (confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
+            chat.messages.splice(index, 1);
+            this.saveChats();
+            this.renderMessages(chat.messages);
+        }
+    }
+
+    branchChat(index) {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (!chat) return;
+        
+        // Create new chat with messages up to index
+        const newChat = {
+            id: this.generateId(),
+            title: `${chat.title} (Branch)`,
+            messages: chat.messages.slice(0, index + 1),
+            tags: [...chat.tags],
+            systemPrompt: chat.systemPrompt,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        this.chats.unshift(newChat);
+        this.saveChats();
+        this.loadChat(newChat.id);
+    }
+
+    showContextMenu(e, index) {
+        this.contextMenuIndex = index;
+        const menu = document.getElementById('contextMenu');
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+        menu.classList.add('active');
+        
+        document.addEventListener('click', this.hideContextMenu);
+    }
+
+    hideContextMenu() {
+        const menu = document.getElementById('contextMenu');
+        menu.classList.remove('active');
+        document.removeEventListener('click', this.hideContextMenu);
+    }
+
+    contextAction(action) {
+        const index = this.contextMenuIndex;
+        this.hideContextMenu();
+        
+        switch(action) {
+            case 'copy':
+                this.copyMessage(index);
+                break;
+            case 'edit':
+                this.editMessage(index);
+                break;
+            case 'branch':
+                this.branchChat(index);
+                break;
+            case 'regenerate':
+                this.regenerateMessage(index);
+                break;
+            case 'delete':
+                this.deleteMessage(index);
+                break;
+        }
+    }
+
     exportChat() {
         const chat = this.chats.find(c => c.id === this.currentChatId);
         if (!chat || chat.messages.length === 0) {
@@ -887,6 +1005,90 @@ class ChatApp {
         }
         this.isListening = false;
         document.getElementById('voiceBtn').classList.remove('listening');
+    }
+
+    playNotificationSound() {
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.1);
+        } catch (e) {
+            console.error('Audio error:', e);
+        }
+    }
+
+    updateCustomTheme() {
+        const accentColor = document.getElementById('accentColor').value;
+        const bgColor = document.getElementById('bgColor').value;
+        
+        document.documentElement.style.setProperty('--accent', accentColor);
+        document.documentElement.style.setProperty('--bg-primary', bgColor);
+        
+        localStorage.setItem('customAccentColor', accentColor);
+        localStorage.setItem('customBgColor', bgColor);
+    }
+
+    resetTheme() {
+        document.getElementById('accentColor').value = '#00d4ff';
+        document.getElementById('bgColor').value = '#0f0f1a';
+        
+        document.documentElement.style.setProperty('--accent', '#00d4ff');
+        document.documentElement.style.setProperty('--bg-primary', '#0f0f1a');
+        
+        localStorage.removeItem('customAccentColor');
+        localStorage.removeItem('customBgColor');
+    }
+
+    handleFileUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target.result;
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value += `\n\n--- File: ${file.name} ---\n${content}\n--- End of file ---\n`;
+            this.autoResize(messageInput);
+        };
+        reader.readAsText(file);
+        
+        // Reset input
+        input.value = '';
+    }
+
+    branchChat(index) {
+        const chat = this.chats.find(c => c.id === this.currentChatId);
+        if (!chat) return;
+        
+        // Create new chat with messages up to index
+        const newChat = {
+            id: this.generateId(),
+            title: `${chat.title} (Branch)`,
+            messages: chat.messages.slice(0, index + 1),
+            tags: [...chat.tags],
+            systemPrompt: chat.systemPrompt,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        this.chats.unshift(newChat);
+        this.saveChats();
+        this.loadChat(newChat.id);
     }
 }
 

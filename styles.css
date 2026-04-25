@@ -375,6 +375,31 @@ body::after {
     transition: all 0.2s;
 }
 
+.token-counter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.token-counter:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+#tokenCount {
+    font-weight: 700;
+    color: var(--accent);
+}
+
 .header-btn:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
@@ -710,15 +735,27 @@ body::after {
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     color: var(--text-secondary);
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 10px;
+    border-radius: 8px;
     transition: all 0.3s ease;
-    flex-shrink: 0;
+}
+
+.file-btn {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.file-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent);
+    box-shadow: var(--shadow-glow);
 }
 
 .voice-btn:hover {
@@ -970,6 +1007,145 @@ body::after {
     .message-actions {
         opacity: 1;
     }
+}
+
+/* Command Palette */
+.command-palette {
+    max-width: 600px;
+}
+
+.command-palette input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+}
+
+.command-palette input:focus {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-glow);
+}
+
+.command-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.command-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+}
+
+.command-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--glass-border);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-glow);
+}
+
+.command-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+
+.command-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.command-shortcut {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 8px 0;
+    min-width: 180px;
+    box-shadow: var(--shadow);
+    z-index: 2000;
+    display: none;
+    animation: slideIn 0.2s ease;
+}
+
+.context-menu.active {
+    display: block;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.context-menu-item:hover {
+    background: var(--bg-hover);
+    color: var(--accent);
+}
+
+.context-menu-item span:first-child {
+    font-size: 16px;
+}
+
+/* Color Picker */
+.color-picker-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.color-picker-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.color-picker-item label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.color-picker-item input[type="color"] {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
 }
 
 /* Scrollbar */
