@@ -395,13 +395,6 @@ class ChatApp {
         
         if (!content || this.isTyping) return;
         
-        // Check API key (only needed if not using proxy)
-        if (!this.apiKey && !this.useProxy) {
-            alert('Vui lòng thêm Gemini API Key trong Cài đặt\n\nLấy key miễn phí tại: aistudio.google.com/app/apikey');
-            this.toggleSettings();
-            return;
-        }
-        
         // Create new chat if needed
         if (!this.currentChatId) {
             const systemPrompt = this.getActiveSystemPrompt();
