@@ -670,7 +670,7 @@ class ChatApp {
                 this.sendMessage();
             }
             // Ctrl+K to open command palette
-            if (e.ctrlKey && e.key === 'k') {
+            if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) {
                 e.preventDefault();
                 this.toggleCommandPalette();
             }
@@ -678,7 +678,7 @@ class ChatApp {
         }
 
         // Ctrl+K: Command palette
-        if (e.ctrlKey && e.key === 'k') {
+        if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) {
             e.preventDefault();
             this.toggleCommandPalette();
         }
@@ -690,13 +690,13 @@ class ChatApp {
         }
 
         // Ctrl+B: Toggle sidebar
-        if (e.ctrlKey && e.key === 'b') {
+        if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) {
             e.preventDefault();
             this.toggleSidebar();
         }
 
         // Ctrl+E: Export chat
-        if (e.ctrlKey && e.key === 'e') {
+        if (e.ctrlKey && (e.key === 'e' || e.key === 'E')) {
             e.preventDefault();
             this.exportChat();
         }
@@ -1156,126 +1156,9 @@ class ChatApp {
                 break;
         }
     }
-
-    showContextMenu(e, index) {
-        this.contextMenuIndex = index;
-        const menu = document.getElementById('contextMenu');
-        menu.style.left = `${e.clientX}px`;
-        menu.style.top = `${e.clientY}px`;
-        menu.classList.add('active');
-        
-        document.addEventListener('click', this.hideContextMenu);
-    }
-
-    hideContextMenu() {
-        const menu = document.getElementById('contextMenu');
-        menu.classList.remove('active');
-        document.removeEventListener('click', this.hideContextMenu);
-    }
-
-    contextAction(action) {
-        const index = this.contextMenuIndex;
-        this.hideContextMenu();
-        
-        switch(action) {
-            case 'copy':
-                this.copyMessage(index);
-                break;
-            case 'edit':
-                this.editMessage(index);
-                break;
-            case 'branch':
-                this.branchChat(index);
-                break;
-            case 'regenerate':
-                this.regenerateMessage(index);
-                break;
-            case 'delete':
-                this.deleteMessage(index);
-                break;
-        }
-    }
-
-    editMessage(index) {
-        const chat = this.chats.find(c => c.id === this.currentChatId);
-        if (!chat) return;
-        
-        const msg = chat.messages[index];
-        const newContent = prompt('Sửa tin nhắn:', msg.content);
-        
-        if (newContent !== null && newContent.trim() !== '') {
-            msg.content = newContent.trim();
-            
-            if (msg.role === 'user') {
-                chat.messages = chat.messages.slice(0, index + 1);
-                this.saveChats();
-                this.renderMessages(chat.messages);
-                this.sendToAPI(chat);
-            } else {
-                this.saveChats();
-                this.renderMessages(chat.messages);
-            }
-        }
-    }
-
-    deleteMessage(index) {
-        const chat = this.chats.find(c => c.id === this.currentChatId);
-        if (!chat) return;
-        
-        if (confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
-            chat.messages.splice(index, 1);
-            this.saveChats();
-            this.renderMessages(chat.messages);
-        }
-    }
-
-    playNotificationSound() {
-        try {
-            if (!this.audioContext) {
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.1);
-        } catch (e) {
-            console.error('Audio error:', e);
-        }
-    }
-
-    updateCustomTheme() {
-        const accentColor = document.getElementById('accentColor').value;
-        const bgColor = document.getElementById('bgColor').value;
-        
-        document.documentElement.style.setProperty('--accent', accentColor);
-        document.documentElement.style.setProperty('--bg-primary', bgColor);
-        
-        localStorage.setItem('customAccentColor', accentColor);
-        localStorage.setItem('customBgColor', bgColor);
-    }
-
-    resetTheme() {
-        document.getElementById('accentColor').value = '#00d4ff';
-        document.getElementById('bgColor').value = '#0f0f1a';
-        
-        document.documentElement.style.setProperty('--accent', '#00d4ff');
-        document.documentElement.style.setProperty('--bg-primary', '#0f0f1a');
-        
-        localStorage.removeItem('customAccentColor');
-        localStorage.removeItem('customBgColor');
-    }
 }
 
-// Initialize
-const chatApp = new ChatApp();
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.chatApp = new ChatApp();
+});
