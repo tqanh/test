@@ -357,9 +357,14 @@ class ChatApp {
             ? DOMPurify.sanitize(marked.parse(msg.content))
             : this.escapeHtml(msg.content).replace(/\n/g, '<br>');
         
+        const modelBadge = msg.role === 'assistant' 
+            ? `<div class="model-badge">${this.getModelDisplayName(this.currentModel)}</div>` 
+            : '';
+        
         div.innerHTML = `
             <div class="message-avatar">${msg.role === 'user' ? 'B' : 'AI'}</div>
             <div class="message-content">
+                ${modelBadge}
                 ${content}
                 <div class="message-actions">
                     <button class="message-action-btn" onclick="chatApp.copyMessage(${index})" title="Sao chép">
@@ -819,6 +824,19 @@ class ChatApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    getModelDisplayName(model) {
+        const modelNames = {
+            'gemini-flash-latest': 'Gemini Flash ⭐',
+            'gemini-flash-lite-latest': 'Gemini Flash Lite',
+            'gemini-pro-latest': 'Gemini Pro',
+            'gemini-2.0-flash': 'Gemini 2.0 Flash',
+            'gemini-2.0-flash-lite': 'Gemini 2.0 Flash Lite',
+            'gemini-2.5-flash': 'Gemini 2.5 Flash',
+            'gemini-2.5-pro': 'Gemini 2.5 Pro'
+        };
+        return modelNames[model] || model;
     }
 
     toggleVoiceInput() {
