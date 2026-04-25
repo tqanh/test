@@ -1,7 +1,7 @@
 {
-  "name": "AI Chat - Gemini API",
+  "name": "AI Chat - Groq API",
   "short_name": "AI Chat",
-  "description": "Ứng dụng chat AI miễn phí sử dụng Google Gemini API",
+  "description": "Ứng dụng chat AI miễn phí sử dụng Groq API siêu nhanh",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",

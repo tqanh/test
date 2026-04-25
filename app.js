@@ -826,15 +826,14 @@ class ChatApp {
 
     getModelDisplayName(model) {
         const modelNames = {
-            'gemini-flash-latest': 'Gemini Flash ⭐',
-            'gemini-flash-lite-latest': 'Gemini Flash Lite',
-            'gemini-pro-latest': 'Gemini Pro',
-            'gemini-2.0-flash': 'Gemini 2.0 Flash',
-            'gemini-2.0-flash-lite': 'Gemini 2.0 Flash Lite',
-            'gemini-2.5-flash': 'Gemini 2.5 Flash',
-            'gemini-2.5-pro': 'Gemini 2.5 Pro'
+            'llama-3.3-70b-versatile': 'LLAMA 3.3 70B',
+            'llama-3.1-8b-instant': 'LLAMA 3.1 8B',
+            'openai/gpt-oss-120b': 'GPT OSS 120B',
+            'openai/gpt-oss-20b': 'GPT OSS 20B',
+            'meta-llama/llama-4-scout-17b-16e-instruct': 'LLAMA 4 SCOUT',
+            'qwen/qwen3-32b': 'QWEN3 32B'
         };
-        return modelNames[model] || model;
+        return modelNames[model] || model.toUpperCase();
     }
 
     toggleVoiceInput() {

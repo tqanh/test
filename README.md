@@ -1,13 +1,13 @@
-# AI Chat - Gemini API
+# AI Chat - Groq API
 
-Ứng dụng chat AI chạy hoàn toàn trên GitHub Pages với giao diện hiện đại, sử dụng Google Gemini API miễn phí.
+Ứng dụng chat AI chạy hoàn toàn trên GitHub Pages với giao diện hiện đại, sử dụng Groq API siêu nhanh (30 RPM).
 
 ![Preview](https://i.imgur.com/placeholder.png)
 
 ## Tính năng
 
 ### Core Features
-- **Chat với nhiều model**: Gemini Flash ⭐, Flash Lite, Pro, 2.0, 2.5 (Free tier)
+- **Chat với nhiều model**: Llama 3.3 70B, Llama 3.1 8B, GPT OSS 120B, GPT OSS 20B, Llama 4 Scout, Qwen3 32B
 - **Streaming Responses**: Hiển thị kết quả AI theo thời gian thực
 - **Code Syntax Highlighting**: Highlight code blocks với highlight.js
 - **Markdown Rendering**: Hiển thị code blocks, bảng, list đẹp với XSS protection
@@ -26,12 +26,12 @@
 
 ## Cài đặt & Deploy
 
-### 1. Lấy API Key (Gemini - Miễn phí)
+### 1. Lấy API Key (Groq - Miễn phí)
 
-1. Vào [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-2. Đăng nhập bằng Google account
+1. Vào [console.groq.com/keys](https://console.groq.com/keys)
+2. Đăng nhập bằng email
 3. Click "Create API Key"
-4. Sao chép key bắt đầu bằng `AIzaSy...`
+4. Sao chép key bắt đầu bằng `gsk_...`
 
 ### 2. Deploy lên GitHub Pages
 
@@ -51,7 +51,7 @@ git push origin main
 
 1. Mở ứng dụng đã deploy
 2. Click **Cài đặt** (bên trái dưới cùng)
-3. Dán API Key vào ô "Google AI (Gemini) API Key"
+3. Dán API Key vào ô "Groq API Key"
 4. Click **Lưu**
 
 API Key được lưu local trong browser, không gửi đến server nào.
@@ -60,7 +60,7 @@ API Key được lưu local trong browser, không gửi đến server nào.
 
 ### Basic Usage
 - **Tin nhắn mới**: Click "Cuộc trò chuyện mới" hoặc icon hamburger
-- **Đổi model**: Dropdown ở header (Flash ⭐, Flash Lite, Pro, 2.0, 2.5)
+- **Đổi model**: Dropdown ở header (Llama 3.3 70B, Llama 3.1 8B, GPT OSS 120B, etc.)
 - **Prompt nhanh**: Click các thẻ ở màn hình chào mừng
 - **Copy/Regenerate**: Hover vào tin nhắn AI để thấy nút action
 - **Export chat**: Icon download ở header để lưu chat ra .md
@@ -80,29 +80,21 @@ API Key được lưu local trong browser, không gửi đến server nào.
 - `Ctrl+E`: Export chat
 - `Ctrl+Enter` (trong input): Send message
 
-## Giới hạn miễn phí (Gemini) - Cập nhật Tháng 4/2026
+## Groq Models
 
-⚠️ **Google đã cắt bỏ toàn bộ Pro models khỏi free tier từ 1/4/2026**
-
-### Free Tier Models:
+### Available Models:
 | Model | Notes |
 |-------|-------|
-| **gemini-flash-latest** ⭐ | Khuyên dùng, nhanh nhất |
-| **gemini-flash-lite-latest** | Rẻ nhất, phù hợp task đơn giản |
-| **gemini-pro-latest** | Free tier, chất lượng cao hơn |
+| **llama-3.3-70b-versatile** ⭐ | Khuyên dùng, chất lượng cao nhất |
+| **llama-3.1-8b-instant** | Nhanh nhất, phù hợp task đơn giản |
+| **openai/gpt-oss-120b** | OpenAI OSS model, chất lượng cao |
+| **openai/gpt-oss-20b** | OpenAI OSS model, nhanh |
+| **meta-llama/llama-4-scout-17b-16e-instruct** | Llama 4 Preview |
+| **qwen/qwen3-32b** | Qwen3 Preview |
 
-### Experimental/Paid Models:
-| Model | Notes |
-|-------|-------|
-| **gemini-2.0-flash** | Experimental |
-| **gemini-2.0-flash-lite** | Experimental |
-| **gemini-2.5-flash** | Có thể cần billing |
-| **gemini-2.5-pro** | ❌ Cần billing card |
-
-### Khuyến nghị:
-1. Dùng **gemini-flash-latest** cho hầu hết task (nhanh, free)
-2. Dùng **gemini-pro-latest** nếu cần chất lượng cao hơn
-3. Tránh 2.5 Pro trừ khi có billing
+### Rate Limits:
+- **30 RPM** (requests per minute) cho free tier
+- **Không giới hạn tokens** per request
 
 ## Customization
 
