@@ -3,6 +3,7 @@ class ChatApp {
         this.chats = JSON.parse(localStorage.getItem('chats')) || [];
         this.currentChatId = localStorage.getItem('currentChatId') || null;
         this.apiKey = localStorage.getItem('geminiApiKey') || '';
+        this.deepseekApiKey = localStorage.getItem('deepseekApiKey') || '';
         this.currentModel = localStorage.getItem('model') || 'gemini-flash-latest';
         this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.systemPrompt = localStorage.getItem('systemPrompt') || '';
@@ -37,6 +38,7 @@ class ChatApp {
         
         // Load API key to settings
         document.getElementById('apiKey').value = this.apiKey;
+        document.getElementById('deepseekApiKey').value = this.deepseekApiKey;
         
         // Load proxy settings
         document.getElementById('useProxy').checked = this.useProxy;
@@ -80,6 +82,12 @@ class ChatApp {
         document.getElementById('proxyUrl')?.addEventListener('change', (e) => {
             localStorage.setItem('proxyUrl', e.target.value);
             this.proxyUrl = e.target.value;
+        });
+        
+        // DeepSeek API key listener
+        document.getElementById('deepseekApiKey')?.addEventListener('change', (e) => {
+            localStorage.setItem('deepseekApiKey', e.target.value);
+            this.deepseekApiKey = e.target.value;
         });
         
         // Keyboard shortcuts
@@ -471,54 +479,100 @@ class ChatApp {
         this.isTyping = true;
         this.updateSendButton();
         
-        // Rate limiting for free tier
-        const now = Date.now();
-        const timeSinceLastRequest = now - this.lastRequestTime;
-        if (timeSinceLastRequest < this.minRequestDelay) {
-            const waitTime = this.minRequestDelay - timeSinceLastRequest;
-            await new Promise(resolve => setTimeout(resolve, waitTime));
+        // Check if using DeepSeek
+        const isDeepSeek = this.currentModel.startsWith('deepseek-');
+        
+        // Check API key
+        if (isDeepSeek && !this.deepseekApiKey) {
+            alert('Vui lòng thêm DeepSeek API Key trong Cài đặt\n\nLấy key miễn phí tại: platform.deepseek.com/api_keys');
+            this.toggleSettings();
+            this.isTyping = false;
+            this.updateSendButton();
+            return;
         }
-        this.lastRequestTime = Date.now();
+        
+        if (!isDeepSeek && !this.apiKey) {
+            alert('Vui lòng thêm Gemini API Key trong Cài đặt\n\nLấy key miễn phí tại: aistudio.google.com/app/apikey');
+            this.toggleSettings();
+            this.isTyping = false;
+            this.updateSendButton();
+            return;
+        }
+        
+        // Rate limiting for free tier (only for Gemini)
+        if (!isDeepSeek) {
+            const now = Date.now();
+            const timeSinceLastRequest = now - this.lastRequestTime;
+            if (timeSinceLastRequest < this.minRequestDelay) {
+                const waitTime = this.minRequestDelay - timeSinceLastRequest;
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
+            this.lastRequestTime = Date.now();
+        }
         
         // Show typing indicator
         this.showTypingIndicator();
         
         try {
-            // Convert messages to Gemini format
-            const contents = chat.messages.map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            }));
+            let response;
             
-            // Use streaming API - either direct or via proxy
-            const apiUrl = this.useProxy && this.proxyUrl 
-                ? this.proxyUrl 
-                : `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:streamGenerateContent?key=${this.apiKey}`;
-            
-            const requestBody = this.useProxy && this.proxyUrl
-                ? { model: this.currentModel, contents }
-                : {
-                    contents: contents,
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 8192
-                    }
-                };
-            
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            });
+            if (isDeepSeek) {
+                // DeepSeek API call (OpenAI-compatible format)
+                const messages = chat.messages.map(msg => ({
+                    role: msg.role === 'assistant' ? 'assistant' : 'user',
+                    content: msg.content
+                }));
+                
+                const apiUrl = 'https://api.deepseek.com/chat/completions';
+                
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.deepseekApiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: this.currentModel,
+                        messages: messages,
+                        stream: true
+                    })
+                });
+            } else {
+                // Gemini API call
+                const contents = chat.messages.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                }));
+                
+                const apiUrl = this.useProxy && this.proxyUrl 
+                    ? this.proxyUrl 
+                    : `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:streamGenerateContent?key=${this.apiKey}`;
+                
+                const requestBody = this.useProxy && this.proxyUrl
+                    ? { model: this.currentModel, contents }
+                    : {
+                        contents: contents,
+                        generationConfig: {
+                            temperature: 0.7,
+                            maxOutputTokens: 8192
+                        }
+                    };
+                
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+            }
             
             // Remove typing indicator
             this.hideTypingIndicator();
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error?.message || `API Error: ${response.status}`);
+                throw new Error(error.error?.message || error.message || `API Error: ${response.status}`);
             }
             
             // Create assistant message for streaming
@@ -534,89 +588,115 @@ class ChatApp {
             this.appendMessageToDOM(assistantMsg, msgIndex);
             const msgContentDiv = document.querySelector(`#msg-${msgIndex} .message-content`);
             
-            // Stream response - read all and parse as JSON array
+            // Stream response
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullContent = '';
             let buffer = '';
             
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-            }
-            
-            // Parse the entire response as JSON array
-            // Gemini returns: [{...},{...},...]
-            try {
-                const cleanBuffer = buffer.trim();
-                const dataArray = JSON.parse(cleanBuffer);
-                
-                if (Array.isArray(dataArray)) {
-                    for (const data of dataArray) {
-                        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                            const parts = data.candidates[0].content.parts;
-                            if (parts && parts[0] && parts[0].text) {
-                                fullContent += parts[0].text;
+            if (isDeepSeek) {
+                // DeepSeek streaming format (OpenAI-compatible: data: {...})
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
+                            try {
+                                const parsed = JSON.parse(data);
+                                if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                                    fullContent += parsed.choices[0].delta.content;
+                                    const modelBadge = `<div class="model-badge">${this.getModelDisplayName(assistantMsg.model)}</div>`;
+                                    msgContentDiv.innerHTML = modelBadge + DOMPurify.sanitize(marked.parse(fullContent)) + `...`;
+                                    this.scrollToBottom();
+                                }
+                            } catch (e) {
+                                // Skip invalid JSON
                             }
                         }
                     }
                 }
-            } catch (e) {
-                console.error('Parse error:', e, 'Buffer length:', buffer.length);
+            } else {
+                // Gemini streaming format
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                }
+                
+                // Parse the entire response as JSON array
+                try {
+                    const cleanBuffer = buffer.trim();
+                    const dataArray = JSON.parse(cleanBuffer);
+                    
+                    if (Array.isArray(dataArray)) {
+                        for (const data of dataArray) {
+                            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                                const parts = data.candidates[0].content.parts;
+                                if (parts && parts[0] && parts[0].text) {
+                                    fullContent += parts[0].text;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing Gemini response:', e);
+                    throw new Error('Failed to parse API response');
+                }
             }
             
-            if (fullContent) {
-                assistantMsg.content = fullContent;
-                
-                // Update DOM with markdown - include model badge
-                const modelBadge = `<div class="model-badge">${this.getModelDisplayName(assistantMsg.model)}</div>`;
-                msgContentDiv.innerHTML = modelBadge + DOMPurify.sanitize(marked.parse(fullContent)) + `
-                    <div class="message-actions">
-                        <button class="message-action-btn" onclick="chatApp.copyMessage(${msgIndex})" title="Sao chép">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
-                        <button class="message-action-btn" onclick="chatApp.regenerateMessage(${msgIndex})" title="Tạo lại">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                        </button>
-                    </div>
-                `;
-                
-                // Highlight code blocks
-                msgContentDiv.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightBlock(block);
-                });
-                
-                this.scrollToBottom();
-            }
+            // Final update
+            assistantMsg.content = fullContent;
+            const modelBadge = `<div class="model-badge">${this.getModelDisplayName(assistantMsg.model)}</div>`;
+            msgContentDiv.innerHTML = modelBadge + DOMPurify.sanitize(marked.parse(fullContent));
+            this.scrollToBottom();
             
-            chat.updatedAt = new Date().toISOString();
+            // Save chat
             this.saveChats();
             
         } catch (error) {
-            this.hideTypingIndicator();
+            console.error('API Error:', error);
+            this.showError(error.message);
             
-            // Show error
-            const container = document.getElementById('messages');
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.textContent = `Lỗi Gemini API: ${error.message}`;
-            container.appendChild(errorDiv);
-            
-            // Remove the failed user message
-            chat.messages.pop();
-            this.saveChats();
+            // Remove the empty assistant message if error occurred
+            if (chat.messages[chat.messages.length - 1].role === 'assistant' && !chat.messages[chat.messages.length - 1].content) {
+                chat.messages.pop();
+                this.renderMessages(chat.messages);
+            }
         } finally {
             this.isTyping = false;
             this.updateSendButton();
         }
+    }
+
+    getModelDisplayName(model) {
+        const modelNames = {
+            'gemini-flash-latest': 'GEMINI FLASH ⭐',
+            'gemini-flash-lite-latest': 'GEMINI FLASH LITE',
+            'gemini-pro-latest': 'GEMINI PRO',
+            'gemini-2.0-flash': 'GEMINI 2.0 FLASH',
+            'gemini-2.0-flash-lite': 'GEMINI 2.0 FLASH LITE',
+            'gemini-2.5-flash': 'GEMINI 2.5 FLASH',
+            'gemini-2.5-pro': 'GEMINI 2.5 PRO',
+            'deepseek-v4-pro': 'DEEPSEEK V4 PRO',
+            'deepseek-v4-flash': 'DEEPSEEK V4 FLASH'
+        };
+        return modelNames[model] || model.toUpperCase();
+    }
+
+    showError(message) {
+        const container = document.getElementById('messages');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = `Lỗi API: ${message}`;
+        container.appendChild(errorDiv);
+        this.scrollToBottom();
     }
 
     showTypingIndicator() {
