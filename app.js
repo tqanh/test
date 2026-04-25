@@ -12,8 +12,8 @@ class ChatApp {
         this.minRequestDelay = 2000; // 2 seconds between requests for free tier
         this.isListening = false;
         this.recognition = null;
-        this.useProxy = localStorage.getItem('useProxy') !== 'false'; // Default to true
-        this.proxyUrl = localStorage.getItem('proxyUrl') || 'https://gemini-proxy.tqanh-gemini.workers.dev';
+        this.useProxy = true; // Always use proxy for sharing
+        this.proxyUrl = 'https://gemini-proxy.tqanh-gemini.workers.dev';
         
         this.systemPrompts = {
             code: 'You are an expert senior software developer with 15+ years of experience. Provide clean, efficient code with best practices, explain your reasoning, and suggest improvements. Use TypeScript/JavaScript conventions where applicable.',
