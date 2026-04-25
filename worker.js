@@ -23,7 +23,13 @@ export default {
       const { model, contents } = body;
 
       if (!env.GEMINI_API_KEY) {
-        return new Response('API key not configured', { status: 500 });
+        return new Response(JSON.stringify({ error: 'API key not configured' }), {
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          },
+        });
       }
 
       // Call Gemini API
@@ -45,8 +51,8 @@ export default {
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        return new Response(JSON.stringify(error), {
+        const errorText = await response.text();
+        return new Response(JSON.stringify({ error: errorText }), {
           status: response.status,
           headers: {
             'Access-Control-Allow-Origin': '*',
@@ -55,26 +61,8 @@ export default {
         });
       }
 
-      // Stream response
-      const reader = response.body.getReader();
-      const encoder = new TextEncoder();
-      
-      const stream = new ReadableStream({
-        async start(controller) {
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              controller.enqueue(value);
-            }
-            controller.close();
-          } catch (error) {
-            controller.error(error);
-          }
-        },
-      });
-
-      return new Response(stream, {
+      // Stream response directly
+      return new Response(response.body, {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json',
@@ -82,7 +70,7 @@ export default {
       });
 
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
         status: 500,
         headers: {
           'Access-Control-Allow-Origin': '*',
