@@ -94,23 +94,6 @@
                 </button>
                 <div class="model-selector">
                     <select id="modelSelect" onchange="chatApp.changeModel(this.value)">
-                        <optgroup label="⭐ Free Tier - Khuyên dùng">
-                            <option value="gemini-flash-latest">Gemini Flash ⭐ (Free)</option>
-                            <option value="gemini-flash-lite-latest">Gemini Flash Lite (Free)</option>
-                            <option value="gemini-pro-latest">Gemini Pro (Free tier)</option>
-                        </optgroup>
-                        <optgroup label="🧪 Gemini 2.0">
-                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                        </optgroup>
-                        <optgroup label="🚀 Gemini 2.5">
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                        </optgroup>
-                        <optgroup label="🌊 DeepSeek - Không giới hạn">
-                            <option value="deepseek-v4-pro">DeepSeek V4 Pro (Best)</option>
-                            <option value="deepseek-v4-flash">DeepSeek V4 Flash (Fast)</option>
-                        </optgroup>
                         <optgroup label="⚡ Groq - Siêu nhanh (30 RPM)">
                             <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Best)</option>
                             <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fastest)</option>
@@ -205,27 +188,9 @@
                 </div>
                 <div class="modal-body">
                     <div class="setting-group">
-                        <label>Google AI (Gemini) API Key</label>
-                        <input type="password" id="apiKey" placeholder="AIzaSy...">
-                        <p class="setting-hint">Lấy API key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></p>
-                    </div>
-                    <div class="setting-group">
-                        <label>DeepSeek API Key (Không giới hạn)</label>
-                        <input type="password" id="deepseekApiKey" placeholder="sk-...">
-                        <p class="setting-hint">Lấy API key miễn phí tại <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com/api_keys</a></p>
-                    </div>
-                    <div class="setting-group">
                         <label>Groq API Key (Siêu nhanh - 30 RPM)</label>
                         <input type="password" id="groqApiKey" placeholder="gsk_...">
                         <p class="setting-hint">Lấy API key miễn phí tại <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></p>
-                    </div>
-                    <div class="setting-group">
-                        <label style="display:flex; align-items:center; gap:8px;">
-                            <input type="checkbox" id="useProxy" onchange="chatApp.toggleProxy(this.checked)">
-                            Dùng Proxy Server (để chia sẻ app)
-                        </label>
-                        <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev" style="display:none; margin-top:8px; width:100%; padding:8px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px;">
-                        <p class="setting-hint" style="display:none;" id="proxyHint">Deploy Cloudflare Worker từ file worker.js trong repo</p>
                     </div>
                     <div class="setting-group">
                         <label>System Prompt (Persona)</label>

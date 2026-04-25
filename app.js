@@ -2,10 +2,8 @@ class ChatApp {
     constructor() {
         this.chats = JSON.parse(localStorage.getItem('chats')) || [];
         this.currentChatId = localStorage.getItem('currentChatId') || null;
-        this.apiKey = localStorage.getItem('geminiApiKey') || '';
-        this.deepseekApiKey = localStorage.getItem('deepseekApiKey') || '';
         this.groqApiKey = localStorage.getItem('groqApiKey') || '';
-        this.currentModel = localStorage.getItem('model') || 'gemini-flash-latest';
+        this.currentModel = localStorage.getItem('model') || 'llama-3.3-70b-versatile';
         this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.systemPrompt = localStorage.getItem('systemPrompt') || '';
         this.currentTagFilter = 'all';
@@ -14,8 +12,6 @@ class ChatApp {
         this.minRequestDelay = 2000; // 2 seconds between requests for free tier
         this.isListening = false;
         this.recognition = null;
-        this.useProxy = false; // Manual API key by default
-        this.proxyUrl = localStorage.getItem('proxyUrl') || 'https://gemini-proxy.tqanh-gemini.workers.dev';
         
         this.systemPrompts = {
             code: 'You are an expert senior software developer with 15+ years of experience. Provide clean, efficient code with best practices, explain your reasoning, and suggest improvements. Use TypeScript/JavaScript conventions where applicable.',
@@ -38,14 +34,7 @@ class ChatApp {
         document.getElementById('modelSelect').value = this.currentModel;
         
         // Load API key to settings
-        document.getElementById('apiKey').value = this.apiKey;
-        document.getElementById('deepseekApiKey').value = this.deepseekApiKey;
         document.getElementById('groqApiKey').value = this.groqApiKey;
-        
-        // Load proxy settings
-        document.getElementById('useProxy').checked = this.useProxy;
-        document.getElementById('proxyUrl').value = this.proxyUrl;
-        this.toggleProxy(this.useProxy);
         
         // Load system prompt
         document.getElementById('systemPrompt').value = this.systemPrompt;
@@ -78,18 +67,6 @@ class ChatApp {
         // Tag input listener
         document.getElementById('chatTags')?.addEventListener('change', (e) => {
             this.saveChatTags(e.target.value);
-        });
-        
-        // Proxy URL listener
-        document.getElementById('proxyUrl')?.addEventListener('change', (e) => {
-            localStorage.setItem('proxyUrl', e.target.value);
-            this.proxyUrl = e.target.value;
-        });
-        
-        // DeepSeek API key listener
-        document.getElementById('deepseekApiKey')?.addEventListener('change', (e) => {
-            localStorage.setItem('deepseekApiKey', e.target.value);
-            this.deepseekApiKey = e.target.value;
         });
         
         // Groq API key listener
@@ -141,23 +118,6 @@ class ChatApp {
         return this.systemPrompts[this.systemPrompt] || '';
     }
 
-    toggleProxy(enabled) {
-        localStorage.setItem('useProxy', enabled);
-        this.useProxy = enabled;
-        
-        const proxyUrlInput = document.getElementById('proxyUrl');
-        const proxyHint = document.getElementById('proxyHint');
-        
-        if (enabled) {
-            proxyUrlInput.style.display = 'block';
-            proxyHint.style.display = 'block';
-            proxyUrlInput.value = this.proxyUrl;
-        } else {
-            proxyUrlInput.style.display = 'none';
-            proxyHint.style.display = 'none';
-        }
-    }
-    
     // Search Functionality
     searchChats(query) {
         if (!query.trim()) {
@@ -440,8 +400,8 @@ class ChatApp {
         if (!content || this.isTyping) return;
         
         // Check API key
-        if (!this.apiKey) {
-            alert('Vui lòng thêm Gemini API Key trong Cài đặt\n\nLấy key miễn phí tại: aistudio.google.com/app/apikey');
+        if (!this.groqApiKey) {
+            alert('Vui lòng thêm Groq API Key trong Cài đặt\n\nLấy key miễn phí tại: console.groq.com/keys');
             this.toggleSettings();
             return;
         }
@@ -487,23 +447,8 @@ class ChatApp {
         this.isTyping = true;
         this.updateSendButton();
         
-        // Check which API to use
-        const isDeepSeek = this.currentModel.startsWith('deepseek-');
-        const isGroq = this.currentModel.startsWith('llama-') || 
-                      this.currentModel.startsWith('openai/') || 
-                      this.currentModel.startsWith('meta-llama/') || 
-                      this.currentModel.startsWith('qwen/');
-        
         // Check API key
-        if (isDeepSeek && !this.deepseekApiKey) {
-            alert('Vui lòng thêm DeepSeek API Key trong Cài đặt\n\nLấy key miễn phí tại: platform.deepseek.com/api_keys');
-            this.toggleSettings();
-            this.isTyping = false;
-            this.updateSendButton();
-            return;
-        }
-        
-        if (isGroq && !this.groqApiKey) {
+        if (!this.groqApiKey) {
             alert('Vui lòng thêm Groq API Key trong Cài đặt\n\nLấy key miễn phí tại: console.groq.com/keys');
             this.toggleSettings();
             this.isTyping = false;
@@ -511,102 +456,30 @@ class ChatApp {
             return;
         }
         
-        if (!isDeepSeek && !isGroq && !this.apiKey) {
-            alert('Vui lòng thêm Gemini API Key trong Cài đặt\n\nLấy key miễn phí tại: aistudio.google.com/app/apikey');
-            this.toggleSettings();
-            this.isTyping = false;
-            this.updateSendButton();
-            return;
-        }
-        
-        // Rate limiting for free tier (only for Gemini)
-        if (!isDeepSeek && !isGroq) {
-            const now = Date.now();
-            const timeSinceLastRequest = now - this.lastRequestTime;
-            if (timeSinceLastRequest < this.minRequestDelay) {
-                const waitTime = this.minRequestDelay - timeSinceLastRequest;
-                await new Promise(resolve => setTimeout(resolve, waitTime));
-            }
-            this.lastRequestTime = Date.now();
-        }
-        
         // Show typing indicator
         this.showTypingIndicator();
         
         try {
-            let response;
+            // Groq API call (OpenAI-compatible format)
+            const messages = chat.messages.map(msg => ({
+                role: msg.role === 'assistant' ? 'assistant' : 'user',
+                content: msg.content
+            }));
             
-            if (isGroq) {
-                // Groq API call (OpenAI-compatible format)
-                const messages = chat.messages.map(msg => ({
-                    role: msg.role === 'assistant' ? 'assistant' : 'user',
-                    content: msg.content
-                }));
-                
-                const apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-                
-                response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.groqApiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: this.currentModel,
-                        messages: messages,
-                        stream: true
-                    })
-                });
-            } else if (isDeepSeek) {
-                // DeepSeek API call (OpenAI-compatible format)
-                const messages = chat.messages.map(msg => ({
-                    role: msg.role === 'assistant' ? 'assistant' : 'user',
-                    content: msg.content
-                }));
-                
-                const apiUrl = 'https://api.deepseek.com/chat/completions';
-                
-                response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.deepseekApiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: this.currentModel,
-                        messages: messages,
-                        stream: true
-                    })
-                });
-            } else {
-                // Gemini API call
-                const contents = chat.messages.map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.content }]
-                }));
-                
-                const apiUrl = this.useProxy && this.proxyUrl 
-                    ? this.proxyUrl 
-                    : `https://generativelanguage.googleapis.com/v1beta/models/${this.currentModel}:streamGenerateContent?key=${this.apiKey}`;
-                
-                const requestBody = this.useProxy && this.proxyUrl
-                    ? { model: this.currentModel, contents }
-                    : {
-                        contents: contents,
-                        generationConfig: {
-                            temperature: 0.7,
-                            maxOutputTokens: 8192
-                        }
-                    };
-                
-                response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-            }
+            const apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.groqApiKey}`
+                },
+                body: JSON.stringify({
+                    model: this.currentModel,
+                    messages: messages,
+                    stream: true
+                })
+            });
             
             // Remove typing indicator
             this.hideTypingIndicator();
@@ -629,66 +502,36 @@ class ChatApp {
             this.appendMessageToDOM(assistantMsg, msgIndex);
             const msgContentDiv = document.querySelector(`#msg-${msgIndex} .message-content`);
             
-            // Stream response
+            // Stream response (OpenAI-compatible format)
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullContent = '';
             let buffer = '';
             
-            if (isGroq || isDeepSeek) {
-                // Groq and DeepSeek streaming format (OpenAI-compatible: data: {...})
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            if (data === '[DONE]') continue;
-                            try {
-                                const parsed = JSON.parse(data);
-                                if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
-                                    fullContent += parsed.choices[0].delta.content;
-                                    const modelBadge = `<div class="model-badge">${this.getModelDisplayName(assistantMsg.model)}</div>`;
-                                    msgContentDiv.innerHTML = modelBadge + DOMPurify.sanitize(marked.parse(fullContent)) + `...`;
-                                    this.scrollToBottom();
-                                }
-                            } catch (e) {
-                                // Skip invalid JSON
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Gemini streaming format
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                }
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
                 
-                // Parse the entire response as JSON array
-                try {
-                    const cleanBuffer = buffer.trim();
-                    const dataArray = JSON.parse(cleanBuffer);
-                    
-                    if (Array.isArray(dataArray)) {
-                        for (const data of dataArray) {
-                            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                                const parts = data.candidates[0].content.parts;
-                                if (parts && parts[0] && parts[0].text) {
-                                    fullContent += parts[0].text;
-                                }
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                                fullContent += parsed.choices[0].delta.content;
+                                const modelBadge = `<div class="model-badge">${this.getModelDisplayName(assistantMsg.model)}</div>`;
+                                msgContentDiv.innerHTML = modelBadge + DOMPurify.sanitize(marked.parse(fullContent)) + `...`;
+                                this.scrollToBottom();
                             }
+                        } catch (e) {
+                            // Skip invalid JSON
                         }
                     }
-                } catch (e) {
-                    console.error('Error parsing Gemini response:', e);
-                    throw new Error('Failed to parse API response');
                 }
             }
             
@@ -718,15 +561,6 @@ class ChatApp {
 
     getModelDisplayName(model) {
         const modelNames = {
-            'gemini-flash-latest': 'GEMINI FLASH ⭐',
-            'gemini-flash-lite-latest': 'GEMINI FLASH LITE',
-            'gemini-pro-latest': 'GEMINI PRO',
-            'gemini-2.0-flash': 'GEMINI 2.0 FLASH',
-            'gemini-2.0-flash-lite': 'GEMINI 2.0 FLASH LITE',
-            'gemini-2.5-flash': 'GEMINI 2.5 FLASH',
-            'gemini-2.5-pro': 'GEMINI 2.5 PRO',
-            'deepseek-v4-pro': 'DEEPSEEK V4 PRO',
-            'deepseek-v4-flash': 'DEEPSEEK V4 FLASH',
             'llama-3.3-70b-versatile': 'LLAMA 3.3 70B',
             'llama-3.1-8b-instant': 'LLAMA 3.1 8B',
             'openai/gpt-oss-120b': 'GPT OSS 120B',
